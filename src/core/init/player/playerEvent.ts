@@ -90,8 +90,8 @@ export default () => {
     if (!playerState.musicInfo.id) return
     clearLoadingTimeout()
     if (global.lx.isPlayedStop) return
-    if (playerState.playMusicInfo.musicInfo && retryNum < 2) {
-      // 若音频URL无效则尝试刷新2次URL
+    if (playerState.playMusicInfo.musicInfo && retryNum < 3) {
+      // 若音频URL无效则尝试刷新3次URL
       let musicInfo = playerState.playMusicInfo.musicInfo
       void getPosition()
         .then((position) => {

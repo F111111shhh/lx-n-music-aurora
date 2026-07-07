@@ -5,7 +5,6 @@ import { requestMsg } from './message'
 import { bHh } from './musicSdk/options'
 import { deflateRaw } from 'pako'
 import settingState from '@/store/setting/state'
-import {toast} from "@/utils/tools";
 
 const defaultHeaders = {
   'User-Agent':
@@ -195,27 +194,18 @@ const fetchData = (url, { timeout = 15000, ...options }) => {
           ...options,
           signal: controller.signal,
         })
-        .then((resp) => {
-            return (options.binary ? resp.blob() : resp.text()).then((text) => {
-              // --- 新增的调试代码 ---
-              console.log('--- Response Body for:', url, '---');
-              try {
-                // 尝试以 JSON 格式打印，如果失败则直接打印文本
-                console.log(JSON.parse(text));
-              } catch (e) {
-                console.log(text);
-              }
-              // --- 调试代码结束 ---
-              return {
-                headers: resp.headers.map,
-                body: text,
-                statusCode: resp.status,
-                statusMessage: resp.statusText,
-                url: resp.url,
-                ok: resp.ok,
-              }
-            });
+        .then((resp) =>
+          (options.binary ? resp.blob() : resp.text()).then((text) => {
+            return {
+              headers: resp.headers.map,
+              body: text,
+              statusCode: resp.status,
+              statusMessage: resp.statusText,
+              url: resp.url,
+              ok: resp.ok,
+            }
           })
+        )
         .then((resp) => {
           if (options.binary) {
             return blobToBuffer(resp.body).then((buffer) => {

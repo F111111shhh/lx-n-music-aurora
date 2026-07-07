@@ -1,148 +1,56 @@
-<p align="center"><a href="https://github.com/lyswhut/lx-music-mobile"><img width="200" src="https://github.com/lyswhut/lx-music-mobile/blob/master/doc/images/icon.png" alt="lx-music logo"></a></p>
+# LX-N Music Aurora
 
-<h1 align="center">LX-N Music 移动版</h1>
+[English](README.en.md)
 
-<p align="center">
-  <a href="https://github.com/souvenp/lx-netease-music-mobile/releases"><img src="https://img.shields.io/github/release/souvenp/lx-netease-music-mobile" alt="Release version"></a>
-  <a href="https://github.com/souvenp/lx-netease-music-mobile/actions/workflows/release.yml"><img src="https://github.com/souvenp/lx-netease-music-mobile/workflows/Build/badge.svg" alt="Build status"></a>
-  <a href="https://github.com/facebook/react-native"><img src="https://img.shields.io/github/package-json/dependency-version/souvenp/lx-netease-music-mobile/react-native/master" alt="React native version"></a>
-</p>
+LX-N Music Aurora 是基于
+[`souvenp/lx-netease-music-mobile`](https://github.com/souvenp/lx-netease-music-mobile)
+的非官方维护 fork，重点整理 LX-N Music 1.8.85 代码线中的 QQ 音源稳定性修复。
 
-<p align="center">一个基于 React Native 开发的音乐软件</p>
+> 本项目与 LX Music、LX-N Music、QQ 音乐、网易云音乐或任何音乐服务提供方没有官方关联。
 
-这个库在lx-music-mobile和ikun-music基础上继续改造，以满足个人需求
-- https://github.com/lyswhut/lx-music-mobile
-- https://github.com/ikunshare/ikun-music-mobile
+## 项目定位
 
-涉及同步、备份未充分测试，自行备份重要文件
-### 1.8.85
-#### 修复、优化
-- 同步上游代码
-- 歌手、专辑详情预览显示图片
-- webdav会同步播放、下载历史了，移除cookie、密码敏感信息
-- wy版权歌曲播放的官方替代
-#### 新增
-- 播放历史（播放2分钟/50%计入历史）
-- 相似歌手、歌曲
-- 全量导出备份
-- OneDrive远程播放
-- wy搜索增强（需要申请apikey，免费250次/月，通过谷歌搜索来补充搜索接口搜不到的歌曲）
----
-### 1.8.83
-#### 修复、优化
-- wy登录页采用手机端
-- 通知栏优化
-- 修复播放、下载速度异常
-- 其他一些小问题
----
-### 1.8.81
-#### 修复、优化
-- 音质标签颜色固定
-- 桌面歌词解锁状态点击会显示锁定图标
-- 通知栏的专辑名称显示、标题显示修正
-- 歌词详情可手势改变字体大小，迷你歌词固定大小
-- 歌曲打点实时判断
-- 菜单图标修正、删除了几个无用设置
-- 修复日推歌曲数量异常
-- 取消过滤推荐歌单里的私人雷达
-#### 新增
-- 通知栏桌面歌词显隐按钮
-- 桌面组件
-- 风格化推荐
-- 心动模式（两个入口，模式切换或我喜欢的歌曲右边按钮）
-- 发送评论
----
-### 1.8.78
-#### 修复、优化
-- wy部分歌曲搜索不到的问题（拉取原仓库）
-- 图片组件优化、启动app初始化最后播放的歌曲到通知栏（拉取原仓库）
-- webdav同步增加两个手动同步歌单按钮，增加判断（未充分测试）
-- wy的vip信息未持久保存的问题（会导致重启app后无法播放vip歌曲、下载高音质歌曲）
-#### 新增
-- 长按封面可下载封面
-- gitcode、几个车机设置项恢复
-- 通知栏、播放详情显示专辑名称
----
-### 1.8.77
-#### 修复
-- 几个小问题
----
-### 1.8.76
-#### 新增
-- 多选模式的在线歌单操作
-- 长按底部播放栏的跳转，现在可以跳转到对应页面了
-#### 修复、优化
-- 下载地址获取成功的提示增加
-- 移除下载任务会终止下载并移除下载中的文件
----
-### 1.8.75
-#### 修复、优化
-- 解决歌单详情的背景问题
-- 日推缓存增加
----
-### 1.8.74
-#### 修复、优化
-- 修复横屏下菜单、详情的展示
-- 修复一个多页面嵌套问题
-- 播放url增加wy vip判断
----
-### 1.8.73
-#### 修复、优化
-- cookie获取vip歌曲url直接返回而不是重试
-- 略微增加详情的封面大小
----
-### 1.8.72
-#### 新增
-- 我的wy歌单操作增加（新建、编辑可能有问题）
-- wy MV播放
-- 更多菜单的显隐
-- 下载元信息别名设置
-#### 修复、优化
-- 打点触发，修改为播放2分钟或50%以上
----
-### 1.8.70
+- 项目名称：LX-N Music Aurora
+- 发行版本：`1.8.85-aurora.1`
+- Git 标签：`v1.8.85-aurora.1`
+- 上游来源：`souvenp/lx-netease-music-mobile`
+- 源码基线：上游提交 `ab08729`，对应 LX-N Music `1.8.85`
+- 许可证：沿用上游 `Apache-2.0`
 
-#### 新增
-- 搜索类型：歌手、专辑，仅支持wy源
-- wy歌曲听歌打点：以助于个性化推荐
-- 日推：歌单增加，相似歌曲增加，入口在日推底部
-- 批量下载：仅支持wy cookie
-- wy源翻唱cover标识增加
+Aurora 版只整理并发布 QQ 音乐音源相关修复，目标是尽量保持 LX-N Music 原有功能、界面和使用习惯不变。
 
-#### 优化
-- 底部播放器，上滑可以打开当前播放列表，左右滑可以打开菜单，顶部增加一个进度条
-- 现在我的歌单里面封面序号显示可切换
-- 播放详情顶部歌手可点击跳到歌手详情、底部更多按钮添加
-- 统一我关注的歌手、收藏的专辑、歌单的展示效果
-- 歌手详情内部专辑列表可以切换网格、列表显示
----
-### 1.8.60
-- webdav支持（歌单支持自动同步，设置和音源手动同步）
-- 下载管理器
-- 顶部滑动可以弹出菜单抽屉
----
-### 1.8.60以下版本
-  #### 新增（仅支持wy）
-  - 菜单增加：每日推荐
-  - 菜单增加：我的歌单
-  - 菜单增加：我关注的歌手
-  - 菜单增加：我收藏的专辑
-  - 歌曲下拉菜单增加：歌手详情
-  - 歌曲下拉菜单增加：专辑详情
-  - 收藏歌曲/歌手/专辑
-  - 歌曲列表显示歌曲封面
-  - 歌曲列表显示歌曲别名
-  - 歌曲列表显示VIP标签
-  - 自动保存日推歌单(最多15个，多的会自动删除)
-  #### 其他
-  - 全局顶部搜索栏增加
-  - 播放详情内迷你歌词显示
-  - 播放详情内可设置圆形旋转封面
-  - 播放详情内歌词点击即可跳转，替换原有的跳转方式
-  - 播放详情顶部的名称过长滚动显示
-  - 底部播放器删除时间条及点击跳转
-  - 底部播放器增加按钮，点击显示当前播放列表
-  - 背景模糊度、背景图片设置
-  - 左侧菜单可设置显示/隐藏
-  - 退出程序的二次确认
-  - 默认设置值修改
+## 本版修复内容
+
+- QQ 音源搜索增加重试、退避等待和空结果保护，降低偶发“加载失败，点击尝试重新加载”的概率。
+- QQ 音源播放时优先在 QQ 同源内部按音质降级尝试，减少误跳到其它来源。
+- QQ 音源下载时同样在 QQ 同源内部尝试可用音质，并对 0B 空文件进行删除和重试。
+- QQ 歌曲链接缓存不再直接复用可能过期的旧链接，也避免其它来源的切源结果污染 QQ 缓存。
+- 播放列表、下一首预加载和手动播放入口对 QQ 音源保持同源策略，减少“尝试切换到其他来源”的误触发。
+- 搜索结果解析补充字段保护，避免 QQ 返回结构缺字段时直接报错。
+
+## 保留内容
+
+- 保留原 LX-N Music 的 Android 包名：`com.lxnetease.music.mobile`，方便沿用原数据目录和系统关联。
+- 保留原有主要功能，不移除其它音源、列表、下载、同步、设置等功能。
+- GitHub 源码、Release 名称、APK 显示名和 APK 版本名统一使用 Aurora 标识。
+
+## 安装说明
+
+请从本仓库的 GitHub Release 下载 APK。安装后应用显示名为 `LX-N Music Aurora`，版本名为 `1.8.85-aurora.1`。
+
+APK 使用调试证书签名。如果手机上已经安装其它签名的 LX-N Music，Android 可能不允许直接覆盖安装。建议先备份应用数据，再卸载旧版后安装 Aurora。
+
+## 校验信息
+
+- APK 文件名：`LX-N-Music-Aurora_1.8.85-aurora.1.apk`
+- 包名：`com.lxnetease.music.mobile`
+- 显示名：`LX-N Music Aurora`
+- 版本名：`1.8.85-aurora.1`
+- versionCode：`70004`
+- SHA-256：`2F0D17C5BD137C0C2E9BEC8A148C77AC76208BF69D0B0F3D5FBF665BF816A125`
+- APK 签名：v1 / v2 / v3 校验通过
+- 当前环境未连接手机或模拟器，因此未做本机自动化播放/下载回归测试
+
+## 法律与使用提醒
+
+本仓库仅用于个人学习、维护和兼容性修复。外部音源脚本、音乐服务访问、下载和播放行为可能受到对应服务条款、地区法律法规或版权规则限制；请自行确认并承担使用责任。

@@ -167,22 +167,26 @@ export default {
           size,
         }
       }
-      if (item.file.size_new[1] !== 0) {
-        let size = sizeFormate(item.file.size_new[1])
+      const sizeNew = Array.isArray(item.file.size_new) ? item.file.size_new : []
+      const atmosSize = Number(sizeNew[1]) || 0
+      const atmosPlusSize = Number(sizeNew[2]) || 0
+      const masterSize = Number(sizeNew[0]) || 0
+      if (atmosSize !== 0) {
+        let size = sizeFormate(atmosSize)
         types.push({ type: 'atmos', size })
         _types.atmos = {
           size,
         }
       }
-      if (item.file.size_new[2] !== 0) {
-        let size = sizeFormate(item.file.size_new[2])
+      if (atmosPlusSize !== 0) {
+        let size = sizeFormate(atmosPlusSize)
         types.push({ type: 'atmos_plus', size })
         _types.atmos_plus = {
           size,
         }
       }
-      if (item.file.size_new[0] !== 0) {
-        let size = sizeFormate(item.file.size_new[0])
+      if (masterSize !== 0) {
+        let size = sizeFormate(masterSize)
         types.push({ type: 'master', size })
         _types.master = {
           size,

@@ -65,6 +65,35 @@ const createGettingUrlId = (musicInfo: LX.Music.MusicInfo | LX.Download.ListItem
       : musicInfo.meta.toggleMusicInfo
   return `${musicInfo.id}_${tInfo?.id ?? ''}`
 }
+
+const PLAY_QUALITY_RANK: LX.Quality[] = ['master', 'atmos_plus', 'atmos', 'hires', 'flac', '320k', '128k']
+const TX_RETRY_QUALITY_RANK: LX.Quality[] = ['flac', '320k', '128k']
+const playRetryQualityIndex = new Map<string, number>()
+
+const getOnlineMusicInfo = (musicInfo: LX.Music.MusicInfo | LX.Download.ListItem) =>
+  'progress' in musicInfo ? musicInfo.metadata.musicInfo : musicInfo
+
+const getRetryQuality = (
+  musicInfo: LX.Music.MusicInfo | LX.Download.ListItem,
+  enableRetryQuality: boolean
+): LX.Quality | undefined => {
+  if (!enableRetryQuality) return
+  const onlineMusicInfo = getOnlineMusicInfo(musicInfo)
+  if (onlineMusicInfo.source == 'local') return
+
+  const qualityRank = onlineMusicInfo.source == 'tx' ? TX_RETRY_QUALITY_RANK : PLAY_QUALITY_RANK
+  const preferredQuality = settingState.setting['player.playQuality']
+  const preferredIndex = qualityRank.indexOf(preferredQuality)
+  const candidates = qualityRank
+    .slice(preferredIndex < 0 ? 0 : preferredIndex)
+    .filter((quality) => onlineMusicInfo.meta._qualitys[quality])
+  if (!candidates.length) return
+
+  const key = createGettingUrlId(musicInfo)
+  const index = Math.min((playRetryQualityIndex.get(key) ?? -1) + 1, candidates.length - 1)
+  playRetryQualityIndex.set(key, index)
+  return candidates[index]
+}
 /**
  * 检查音乐信息是否已更改
  */
@@ -114,13 +143,16 @@ const getMusicPlayUrl = async (
   addLoadTimeout()
 
   // const type = getPlayType(settingState.setting['player.isPlayHighQuality'], musicInfo)
-  let toggleMusicInfo = ('progress' in musicInfo ? musicInfo.metadata.musicInfo : musicInfo).meta
-    .toggleMusicInfo
+  const onlineMusicInfo = getOnlineMusicInfo(musicInfo)
+  let toggleMusicInfo = onlineMusicInfo.source == 'tx' ? null : onlineMusicInfo.meta.toggleMusicInfo
+  const retryQuality = getRetryQuality(musicInfo, isRefresh || isRetryed)
+  const allowSourceToggle = onlineMusicInfo.source != 'tx'
 
   return (
     toggleMusicInfo
       ? getMusicUrl({
           musicInfo: toggleMusicInfo,
+          quality: retryQuality,
           isRefresh,
           allowToggleSource: false,
         })
@@ -129,7 +161,9 @@ const getMusicPlayUrl = async (
     .catch(async () => {
       return getMusicUrl({
         musicInfo,
+        quality: retryQuality,
         isRefresh,
+        allowToggleSource: allowSourceToggle,
         onToggleSource(mInfo) {
           if (diffCurrentMusicInfo(musicInfo)) return
           setStatusText(global.i18n.t('toggle_source_try'))
@@ -165,6 +199,7 @@ export const setMusicUrl = (
   // addLoadTimeout()
   if (!diffCurrentMusicInfo(musicInfo)) return
   if (cancelDelayRetry) cancelDelayRetry()
+  if (!isRefresh) playRetryQualityIndex.delete(createGettingUrlId(musicInfo))
   global.lx.gettingUrlId = createGettingUrlId(musicInfo)
   void getMusicPlayUrl(musicInfo, isRefresh)
     .then((url) => {

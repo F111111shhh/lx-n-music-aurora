@@ -2,6 +2,8 @@ import { formatPlayTime, sizeFormate } from '../../index'
 import { formatSingerName } from '../utils'
 import { signRequest } from './utils'
 
+const wait = (time) => new Promise((resolve) => setTimeout(resolve, time))
+
 export default {
   limit: 50,
   total: 0,
@@ -9,7 +11,7 @@ export default {
   allPage: 1,
   successCode: 0,
   musicSearch(str, page, limit, retryNum = 0) {
-    if (retryNum > 5) return Promise.reject(new Error('搜索失败'))
+    if (retryNum > 8) return Promise.reject(new Error('搜索失败'))
     const searchRequest = signRequest({
       comm: {
         ct: '11',
@@ -61,9 +63,16 @@ export default {
     })
     return searchRequest.then(({ body }) => {
       if (!body || !body.req || body.code != this.successCode || body.req.code != this.successCode) {
-        return this.musicSearch(str, page, limit, ++retryNum)
+        return wait(250 + retryNum * 150).then(() =>
+          this.musicSearch(str, page, limit, retryNum + 1)
+        )
       }
       return body.req.data
+    }).catch((err) => {
+      if (retryNum >= 8) return Promise.reject(err)
+      return wait(250 + retryNum * 150).then(() =>
+        this.musicSearch(str, page, limit, retryNum + 1)
+      )
     })
   },
   handleResult(rawList) {
@@ -103,22 +112,26 @@ export default {
           size,
         }
       }
-      if (file.size_new[1] !== 0) {
-        let size = sizeFormate(file.size_new[1])
+      const sizeNew = Array.isArray(file.size_new) ? file.size_new : []
+      const atmosSize = Number(sizeNew[1]) || 0
+      const atmosPlusSize = Number(sizeNew[2]) || 0
+      const masterSize = Number(sizeNew[0]) || 0
+      if (atmosSize !== 0) {
+        let size = sizeFormate(atmosSize)
         types.push({ type: 'atmos', size })
         _types.atmos = {
           size,
         }
       }
-      if (file.size_new[2] !== 0) {
-        let size = sizeFormate(file.size_new[2])
+      if (atmosPlusSize !== 0) {
+        let size = sizeFormate(atmosPlusSize)
         types.push({ type: 'atmos_plus', size })
         _types.atmos_plus = {
           size,
         }
       }
-      if (file.size_new[0] !== 0) {
-        let size = sizeFormate(file.size_new[0])
+      if (masterSize !== 0) {
+        let size = sizeFormate(masterSize)
         types.push({ type: 'master', size })
         _types.master = {
           size,
@@ -154,12 +167,19 @@ export default {
     })
     return list
   },
-  search(str, page = 1, limit) {
+  search(str, page = 1, limit, retryNum = 0) {
     if (limit == null) limit = this.limit
     return this.musicSearch(str, page, limit).then(({ body, meta }) => {
-      let list = this.handleResult(body.item_song)
+      let list = this.handleResult(body?.item_song)
+      const total = meta?.estimate_sum ?? list.length
 
-      this.total = meta.estimate_sum
+      if (page == 1 && !list.length && retryNum < 3) {
+        return wait(300 + retryNum * 200).then(() =>
+          this.search(str, page, limit, retryNum + 1)
+        )
+      }
+
+      this.total = total
       this.page = page
       this.allPage = Math.ceil(this.total / limit)
 

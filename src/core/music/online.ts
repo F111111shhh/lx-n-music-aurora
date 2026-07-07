@@ -86,7 +86,7 @@ export const getMusicUrl = async ({
   const targetQuality = quality ?? getPlayQuality(preferredQuality, currentMusicInfo);
 
   const cachedUrl = await getStoreMusicUrl(currentMusicInfo, targetQuality)
-  if (cachedUrl && !isRefresh) return cachedUrl
+  if (cachedUrl && !isRefresh && currentMusicInfo.source != 'tx') return cachedUrl
 
   // 定义高音质列表
   const highQualityLevels: LX.Quality[] = ['flac', 'hires', 'master', 'atmos', 'atmos_plus'];
@@ -111,7 +111,11 @@ export const getMusicUrl = async ({
         allowToggleSource,
       });
       console.log('Custom API request succeeded', result);
-      void saveMusicUrl(currentMusicInfo, result.quality, result.url);
+      if (result.musicInfo.id == currentMusicInfo.id) {
+        void saveMusicUrl(currentMusicInfo, result.quality, result.url);
+      } else {
+        void saveMusicUrl(result.musicInfo, result.quality, result.url);
+      }
       return result.url;
     } catch (apiError) {
       console.log('Custom API request failed', apiError);
@@ -142,8 +146,10 @@ export const getMusicUrl = async ({
   }).then(({ url, quality: targetQuality, musicInfo: targetMusicInfo, isFromCache }) => {
     if (targetMusicInfo.id != currentMusicInfo.id && !isFromCache)
       void saveMusicUrl(targetMusicInfo, targetQuality, url)
-    void saveMusicUrl(currentMusicInfo, targetQuality, url)
-    if (currentMusicInfo.id !== musicInfo.id) void saveMusicUrl(musicInfo, targetQuality, url)
+    if (targetMusicInfo.id == currentMusicInfo.id) {
+      void saveMusicUrl(currentMusicInfo, targetQuality, url)
+      if (currentMusicInfo.id !== musicInfo.id) void saveMusicUrl(musicInfo, targetQuality, url)
+    }
     return url
   })
 }
