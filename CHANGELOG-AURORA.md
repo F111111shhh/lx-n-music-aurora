@@ -1,5 +1,19 @@
 # LX-N Music Aurora Changelog
 
+## 1.8.85-aurora.3 - 2026-07-22
+
+### 中文
+
+- 修复播放详情歌词在部分字号下，当前高亮行缩放后被左右可见边界截断的问题。
+- 横屏和竖屏歌词行均预留缩放安全区，保持现有高亮、点击预览和滚动定位行为。
+
+### English
+
+- Fixes active lyrics being clipped by the left and right visible bounds at
+  certain font sizes after the highlight scale animation.
+- Reserves scale-safe horizontal space in both portrait and landscape lyric
+  views while preserving highlighting, tap preview, and scroll positioning.
+
 ## 1.8.85-aurora.2 - 2026-07-22
 
 ### 中文
