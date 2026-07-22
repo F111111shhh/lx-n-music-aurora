@@ -11,13 +11,12 @@ LX-N Music Aurora 是基于
 
 ## 发布信息
 
-- 当前版本：<code>1.8.85-aurora.3</code>
-- 发布标签：<code>v1.8.85-aurora.3</code>
+- 完整功能与版本变更请参阅 [Aurora 更改日志](CHANGELOG-AURORA.md) 和
+  [GitHub Releases](https://github.com/F111111shhh/lx-n-music-aurora/releases)。
 - Android 包名：<code>com.lxnetease.music.mobile</code>
 - Android 显示名：<code>LX-N Music Aurora</code>
 - 上游：<code>souvenp/lx-netease-music-mobile</code>
 - 许可证：沿用上游 [Apache License 2.0](LICENSE)
-- 变更记录：[CHANGELOG-AURORA.md](CHANGELOG-AURORA.md)
 
 ## Aurora 功能
 
