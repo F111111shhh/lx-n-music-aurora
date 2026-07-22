@@ -18,26 +18,25 @@ improvements for playback, downloads, source fallback, and lyrics.
 - Android display name: <code>LX-N Music Aurora</code>
 - Upstream: <code>souvenp/lx-netease-music-mobile</code>
 - License: upstream [Apache License 2.0](LICENSE)
-
-Branch convention:
-
-- <code>main</code> tracks upstream <code>main</code> and contains no
-  Aurora-specific changes.
-- <code>aurora</code> is the downstream development and release branch.
+- Change log: [CHANGELOG-AURORA.md](CHANGELOG-AURORA.md)
 
 ## Aurora Functionality
 
-- Playback and downloads share configurable URL fallback strategies:
+- Playback and downloads share URL fallback strategies selectable under
+  Playback Settings:
   - **Source first** tries the current source through its available qualities
     before considering other sources.
   - **Quality first** tries the requested quality across all candidate sources,
     then progressively lowers the quality.
-- Handles quality aliases and URL candidates used by QQ Music, Kuwo, and other
+- Improves retry and result validation for QQ Music source searches, and
+  handles quality aliases and URL candidates used by QQ Music, Kuwo, and other
   sources to reduce unnecessary source switching, expired URLs, and empty downloads.
 - Shows the actual playback quality below the progress bar; tap it to inspect
   and select an available quality for the current track.
 - Includes Aurora lyric improvements for active-line highlighting, scaling,
   tap preview, and scroll synchronization.
+- In-app update checks are disabled; future versions are published through
+  [GitHub Releases](https://github.com/F111111shhh/lx-n-music-aurora/releases).
 - Does not intentionally remove existing sources, playlists, downloads, sync,
   settings, or other common LX-N Music features.
 
@@ -51,29 +50,6 @@ over an older Aurora build, stock LX-N Music build, or another same-package
 build signed with a different key. Export important settings, playlists, and
 data before uninstalling the older build for this one-time migration. Future
 Aurora releases will use the same key and can update in place.
-
-## Build And Upstream Sync
-
-Local builds use Node.js, Android SDK, and Gradle:
-
-~~~powershell
-npm run pack:android
-~~~
-
-The Release key and <code>android/keystore.properties</code> stay local and
-must never be committed to Git.
-
-For upstream updates, update <code>main</code> first, validate it, then merge
-it into <code>aurora</code>:
-
-~~~powershell
-git checkout main
-git fetch upstream
-git merge --ff-only upstream/main
-git push origin main
-git checkout aurora
-git merge main
-~~~
 
 ## Notice
 
