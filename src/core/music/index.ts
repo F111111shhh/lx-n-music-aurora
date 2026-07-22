@@ -18,6 +18,7 @@ import {
   getPicUrl as getOneDrivePicUrl,
   getLyricInfo as getOneDriveLyricInfo,
 } from '@/core/oneDrive/music'
+import type { ResolvedMusicUrl } from './utils'
 
 export const getMusicUrl = async ({
   musicInfo,
@@ -25,22 +26,50 @@ export const getMusicUrl = async ({
   isRefresh = false,
   onToggleSource,
   allowToggleSource,
+  allowQualityFallback,
+  attemptedCandidates,
+  forceWyCookie,
+  onResolved,
 }: {
   musicInfo: LX.Music.MusicInfo | LX.Download.ListItem
   isRefresh?: boolean
   quality?: LX.Quality
   onToggleSource?: (musicInfo?: LX.Music.MusicInfoOnline) => void
   allowToggleSource?: boolean
+  allowQualityFallback?: boolean
+  attemptedCandidates?: Set<string>
+  forceWyCookie?: boolean
+  onResolved?: (result: ResolvedMusicUrl) => void
 }): Promise<string> => {
   if ('progress' in musicInfo) {
-    return getDownloadMusicUrl({ musicInfo, isRefresh, onToggleSource, allowToggleSource })
+    return getDownloadMusicUrl({
+      musicInfo,
+      quality,
+      isRefresh,
+      onToggleSource,
+      allowToggleSource,
+      allowQualityFallback,
+      attemptedCandidates,
+      forceWyCookie,
+      onResolved,
+    })
   } else if (musicInfo.source == 'local') {
     if ('oneDrive' in musicInfo.meta) {
       return getOneDriveMusicUrl({ musicInfo: musicInfo as LX.OneDrive.MusicInfo, isRefresh })
     }
     return getLocalMusicUrl({ musicInfo, isRefresh, onToggleSource, allowToggleSource })
   } else {
-    return getOnlineMusicUrl({ musicInfo, isRefresh, quality, onToggleSource, allowToggleSource })
+    return getOnlineMusicUrl({
+      musicInfo,
+      isRefresh,
+      quality,
+      onToggleSource,
+      allowToggleSource,
+      allowQualityFallback,
+      attemptedCandidates,
+      forceWyCookie,
+      onResolved,
+    })
   }
 }
 

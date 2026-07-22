@@ -1,56 +1,69 @@
 # LX-N Music Aurora
 
-[English](README.en.md)
+<p align="right"><a href="./README.md">简体中文</a> | <a href="./README.en.md">English</a></p>
 
 LX-N Music Aurora 是基于
-[`souvenp/lx-netease-music-mobile`](https://github.com/souvenp/lx-netease-music-mobile)
-的非官方维护 fork，重点整理 LX-N Music 1.8.85 代码线中的 QQ 音源稳定性修复。
+[souvenp/lx-netease-music-mobile](https://github.com/souvenp/lx-netease-music-mobile)
+的非官方维护 Fork。它保留 LX-N Music 的主要功能与使用习惯，并整理当前 Aurora 分支的
+播放、下载、音源回退和歌词体验改进。
 
-> 本项目与 LX Music、LX-N Music、QQ 音乐、网易云音乐或任何音乐服务提供方没有官方关联。
+> 本项目与 LX Music、LX-N Music 及任何音乐服务提供方均无官方关联。
 
-## 项目定位
+## 发布信息
 
-- 项目名称：LX-N Music Aurora
-- 发行版本：`1.8.85-aurora.1`
-- Git 标签：`v1.8.85-aurora.1`
-- 上游来源：`souvenp/lx-netease-music-mobile`
-- 源码基线：上游提交 `ab08729`，对应 LX-N Music `1.8.85`
-- 许可证：沿用上游 `Apache-2.0`
+- 当前版本：<code>1.8.85-aurora.2</code>
+- 发布标签：<code>v1.8.85-aurora.2</code>
+- Android 包名：<code>com.lxnetease.music.mobile</code>
+- Android 显示名：<code>LX-N Music Aurora</code>
+- 上游：<code>souvenp/lx-netease-music-mobile</code>
+- 许可证：沿用上游 [Apache License 2.0](LICENSE)
 
-Aurora 版只整理并发布 QQ 音乐音源相关修复，目标是尽量保持 LX-N Music 原有功能、界面和使用习惯不变。
+分支约定：
 
-## 本版修复内容
+- <code>main</code> 跟踪上游 <code>main</code>，不承载 Aurora 定制。
+- <code>aurora</code> 是发布和功能开发分支。
 
-- QQ 音源搜索增加重试、退避等待和空结果保护，降低偶发“加载失败，点击尝试重新加载”的概率。
-- QQ 音源播放时优先在 QQ 同源内部按音质降级尝试，减少误跳到其它来源。
-- QQ 音源下载时同样在 QQ 同源内部尝试可用音质，并对 0B 空文件进行删除和重试。
-- QQ 歌曲链接缓存不再直接复用可能过期的旧链接，也避免其它来源的切源结果污染 QQ 缓存。
-- 播放列表、下一首预加载和手动播放入口对 QQ 音源保持同源策略，减少“尝试切换到其他来源”的误触发。
-- 搜索结果解析补充字段保护，避免 QQ 返回结构缺字段时直接报错。
+## Aurora 功能
 
-## 保留内容
+- 播放和下载共用可配置的链接回退策略：
+  - **同源优先**：当前音源按可用音质从高到低尝试，再考虑其它音源。
+  - **同音质优先**：先在全部候选音源上尝试目标音质，再逐级降低音质。
+- 对 QQ、酷我等音源的音质别名和候选链接做兼容处理，减少不必要的切源、过期 URL 和空文件下载。
+- 播放详情进度条下方显示当前实际音质；点击可查看并切换这首歌可用的音质。
+- 歌词页包含当前句高亮、缩放、点击预览和滚动同步方面的 Aurora 改进。
+- 不移除原有音源、列表、下载、同步、设置或其它常用功能。
 
-- 保留原 LX-N Music 的 Android 包名：`com.lxnetease.music.mobile`，方便沿用原数据目录和系统关联。
-- 保留原有主要功能，不移除其它音源、列表、下载、同步、设置等功能。
-- GitHub 源码、Release 名称、APK 显示名和 APK 版本名统一使用 Aurora 标识。
+## 安装
 
-## 安装说明
+请从 [GitHub Releases](https://github.com/F111111shhh/lx-n-music-aurora/releases)
+下载通用 APK。
 
-请从本仓库的 GitHub Release 下载 APK。安装后应用显示名为 `LX-N Music Aurora`，版本名为 `1.8.85-aurora.1`。
+本版本使用新的私有 Release 签名。若设备安装的是旧 Aurora、原版 LX-N Music 或任何使用
+不同签名的同包名版本，Android 不能直接覆盖安装。首次迁移前请导出重要设置、歌单和数据，
+然后卸载旧版并安装本版本。之后的 Aurora Release 会继续使用同一把签名密钥，可正常覆盖升级。
 
-APK 使用调试证书签名。如果手机上已经安装其它签名的 LX-N Music，Android 可能不允许直接覆盖安装。建议先备份应用数据，再卸载旧版后安装 Aurora。
+## 构建与上游同步
 
-## 校验信息
+本地构建使用 Node.js、Android SDK 和 Gradle：
 
-- APK 文件名：`LX-N-Music-Aurora_1.8.85-aurora.1.apk`
-- 包名：`com.lxnetease.music.mobile`
-- 显示名：`LX-N Music Aurora`
-- 版本名：`1.8.85-aurora.1`
-- versionCode：`70004`
-- SHA-256：`2F0D17C5BD137C0C2E9BEC8A148C77AC76208BF69D0B0F3D5FBF665BF816A125`
-- APK 签名：v1 / v2 / v3 校验通过
-- 当前环境未连接手机或模拟器，因此未做本机自动化播放/下载回归测试
+~~~powershell
+npm run pack:android
+~~~
 
-## 法律与使用提醒
+Release key 和 <code>android/keystore.properties</code> 仅保存在本机，绝不提交到 Git。
 
-本仓库仅用于个人学习、维护和兼容性修复。外部音源脚本、音乐服务访问、下载和播放行为可能受到对应服务条款、地区法律法规或版权规则限制；请自行确认并承担使用责任。
+同步上游时，先更新 <code>main</code>，验证后再将其合并到 <code>aurora</code>：
+
+~~~powershell
+git checkout main
+git fetch upstream
+git merge --ff-only upstream/main
+git push origin main
+git checkout aurora
+git merge main
+~~~
+
+## 说明
+
+这是个人维护的兼容性分支。外部音源脚本、联网播放和下载可能受服务条款、地区限制和版权法律
+影响，请自行确认使用方式的合规性。

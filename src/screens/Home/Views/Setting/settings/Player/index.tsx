@@ -12,6 +12,7 @@ import IsShowLyricTranslation from './IsShowLyricTranslation'
 import IsShowLyricRoma from './IsShowLyricRoma'
 import IsS2T from './IsS2T'
 import MaxCache from './MaxCache'
+import UrlFallbackStrategy from './UrlFallbackStrategy'
 import { useI18n } from '@/lang'
 
 export default memo(() => {
@@ -27,8 +28,9 @@ export default memo(() => {
       <IsShowLyricTranslation />
       <IsShowLyricRoma />
       <IsS2T />
-      <MaxCache />
       <PlayHighQuality />
+      <UrlFallbackStrategy />
+      <MaxCache />
     </Section>
   )
 })

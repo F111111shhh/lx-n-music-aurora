@@ -16,6 +16,8 @@ declare global {
         alias?: string
         singer: string
         album: string
+        quality: LX.Quality | null
+        source: LX.OnlineSource | null
       }
 
       interface LyricInfo extends LX.Music.LyricInfo {

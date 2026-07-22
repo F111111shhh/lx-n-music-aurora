@@ -1,17 +1,21 @@
-import { saveLyric, saveMusicUrl, getMusicUrl as getStoreMusicUrl } from '@/utils/data'
+import { saveLyric, saveMusicUrl } from '@/utils/data'
 import { updateListMusics } from '@/core/list'
 import settingState from '@/store/setting/state'
 
 import wySdk from '@/utils/musicSdk/wy'
+import musicSdk from '@/utils/musicSdk'
+import { toOldMusicInfo } from '@/utils'
 import {
   buildLyricInfo,
   getPlayQuality,
   handleGetOnlineLyricInfo,
   handleGetOnlineMusicUrl,
   handleGetOnlinePicUrl,
-  getCachedLyricInfo, QUALITY_RANK,
+  getCachedLyricInfo,
+  QUALITY_RANK,
+  type MusicUrlRequester,
+  type ResolvedMusicUrl,
 } from './utils'
-import {toast} from "@/utils/tools.ts"
 import {fetchAndApplyDetailedQuality} from "@/utils/musicSdk/wy/musicDetail.js"
 import userState from '@/store/user/state'
 
@@ -38,17 +42,77 @@ export const setPic = (datas: {
 }
  */
 
+const HIGH_QUALITY_LEVELS: LX.Quality[] = ['flac', 'hires', 'master', 'atmos', 'atmos_plus']
+
+const normalizeWyCookieLevel = (level: string | undefined, fallback: LX.Quality): LX.Quality => {
+  switch (level) {
+    case 'standard':
+    case 'higher':
+      return '128k'
+    case 'exhigh':
+      return '320k'
+    case 'lossless':
+      return 'flac'
+    case 'hires':
+      return 'hires'
+    case 'jyeffect':
+    case 'dolby':
+      return 'atmos'
+    case 'sky':
+      return 'atmos_plus'
+    case 'jymaster':
+      return 'master'
+    default:
+      return fallback
+  }
+}
+
+const createMusicUrlRequester = (forceWyCookie: boolean): MusicUrlRequester => {
+  return async (musicInfo, quality) => {
+    if (musicInfo.source == 'wy' && settingState.setting['common.wy_cookie']) {
+      const isVipUser = userState.wy_vip_type !== 0
+      const isVipSong = musicInfo.meta.fee === 1
+      const preferApi = !isVipUser && (isVipSong || HIGH_QUALITY_LEVELS.includes(quality))
+      if (forceWyCookie || !preferApi) {
+        try {
+          const result = (await wySdk.cookie.getMusicUrl(musicInfo, quality).promise) as unknown as {
+            url?: string
+            level?: string
+          }
+          if (!result.url) throw new Error('Cookie did not return a URL')
+          return {
+            url: result.url,
+            type: normalizeWyCookieLevel(result.level, quality),
+          }
+        } catch (error) {
+          console.log('Get music URL with cookie failed, fallback to custom API', error)
+        }
+      }
+    }
+
+    return musicSdk[musicInfo.source].getMusicUrl(toOldMusicInfo(musicInfo), quality).promise
+  }
+}
+
 export const getMusicUrl = async ({
   musicInfo,
   quality,
   isRefresh,
   allowToggleSource = true,
+  allowQualityFallback = true,
+  attemptedCandidates = new Set<string>(),
+  forceWyCookie = false,
+  onResolved = () => {},
   onToggleSource = () => {},
 }: {
   musicInfo: LX.Music.MusicInfoOnline
   quality?: LX.Quality
   isRefresh: boolean
   allowToggleSource?: boolean
+  allowQualityFallback?: boolean
+  attemptedCandidates?: Set<string>
+  forceWyCookie?: boolean
+  onResolved?: (result: ResolvedMusicUrl) => void
   onToggleSource?: (musicInfo?: LX.Music.MusicInfoOnline) => void
 }): Promise<string> => {
   // if (!musicInfo._types[type]) {
@@ -59,7 +123,7 @@ export const getMusicUrl = async ({
   // }
 
   let currentMusicInfo = musicInfo;
-  const preferredQuality = settingState.setting['player.playQuality'];
+  const preferredQuality = quality ?? settingState.setting['player.playQuality'];
 
   // 检查是否需要获取详细音质
   const isWySource = currentMusicInfo.source === 'wy';
@@ -67,7 +131,7 @@ export const getMusicUrl = async ({
   console.log("播放：currentMusicInfo:", currentMusicInfo);
 
   if (isWySource && !hasFullDetails) {
-    const availableQualities = Object.keys(currentMusicInfo.meta._qualitys);
+    const availableQualities = Object.keys(currentMusicInfo.meta._qualitys) as LX.Quality[];
     const preferredQualityIndex = QUALITY_RANK.indexOf(preferredQuality);
     const maxAvailableQualityIndex = Math.min(...availableQualities.map(q => QUALITY_RANK.indexOf(q)));
 
@@ -83,75 +147,20 @@ export const getMusicUrl = async ({
     }
   }
 
-  const targetQuality = quality ?? getPlayQuality(preferredQuality, currentMusicInfo);
-
-  const cachedUrl = await getStoreMusicUrl(currentMusicInfo, targetQuality)
-  if (cachedUrl && !isRefresh && currentMusicInfo.source != 'tx') return cachedUrl
-
-  // 定义高音质列表
-  const highQualityLevels: LX.Quality[] = ['flac', 'hires', 'master', 'atmos', 'atmos_plus'];
-
-  const isVipUser = userState.wy_vip_type !== 0;
-  const isVipSong = currentMusicInfo.meta.fee === 1;
-  const isHighQuality = highQualityLevels.includes(targetQuality);
-
-  // 非网易源或不是网易云vip且歌曲是vip歌曲或高音质歌曲
-  const preferApi = !isWySource || (!isVipUser && (isVipSong || isHighQuality))
-
-  console.log("vip:" + userState.wy_vip_type)
-  if (preferApi) {
-    try {
-      console.log('Attempting to get music URL via custom API');
-      // 优先尝试自定义音源 (API)
-      const result = await handleGetOnlineMusicUrl({
-        musicInfo: currentMusicInfo,
-        quality: targetQuality,
-        onToggleSource,
-        isRefresh,
-        allowToggleSource,
-      });
-      console.log('Custom API request succeeded', result);
-      if (result.musicInfo.id == currentMusicInfo.id) {
-        void saveMusicUrl(currentMusicInfo, result.quality, result.url);
-      } else {
-        void saveMusicUrl(result.musicInfo, result.quality, result.url);
-      }
-      return result.url;
-    } catch (apiError) {
-      console.log('Custom API request failed', apiError);
-      throw apiError;
-    }
-  }
-
-  // 默认流程
-  if (musicInfo.source == 'wy' && settingState.setting['common.wy_cookie']) {
-    try {
-      const { url } = await wySdk.cookie.getMusicUrl(currentMusicInfo, targetQuality).promise;
-      if (url) {
-        void saveMusicUrl(currentMusicInfo, targetQuality, url);
-        if (currentMusicInfo.id !== musicInfo.id) void saveMusicUrl(musicInfo, targetQuality, url);
-        return url;
-      }
-    } catch (error) {
-      console.log('Get music url with cookie failed, fallback to custom api', error);
-    }
-  }
-
-  return handleGetOnlineMusicUrl({
+  const targetQuality = quality ?? getPlayQuality(preferredQuality, currentMusicInfo)
+  const result = await handleGetOnlineMusicUrl({
     musicInfo: currentMusicInfo,
     quality: targetQuality,
     onToggleSource,
     isRefresh,
     allowToggleSource,
-  }).then(({ url, quality: targetQuality, musicInfo: targetMusicInfo, isFromCache }) => {
-    if (targetMusicInfo.id != currentMusicInfo.id && !isFromCache)
-      void saveMusicUrl(targetMusicInfo, targetQuality, url)
-    if (targetMusicInfo.id == currentMusicInfo.id) {
-      void saveMusicUrl(currentMusicInfo, targetQuality, url)
-      if (currentMusicInfo.id !== musicInfo.id) void saveMusicUrl(musicInfo, targetQuality, url)
-    }
-    return url
+    allowQualityFallback,
+    attemptedCandidates,
+    requestMusicUrl: createMusicUrlRequester(forceWyCookie),
   })
+  if (!result.isFromCache) void saveMusicUrl(result.musicInfo, result.quality, result.url)
+  onResolved(result)
+  return result.url
 }
 
 export const getPicUrl = async ({

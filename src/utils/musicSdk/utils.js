@@ -1,7 +1,7 @@
 import { stringMd5 } from 'react-native-quick-md5'
 import { decodeName } from '../index'
-import settingState from '@/store/setting/state';
-import {logPlugin} from "@babel/preset-env/lib/debug";
+import settingState from '@/store/setting/state'
+import { logPlugin } from '@babel/preset-env/lib/debug'
 
 /**
  * 获取音乐音质
@@ -50,27 +50,36 @@ export const formatSingerName = (singers, nameKey = 'name', join = '、') => {
  * @returns {LX.Quality} 应该传递给API的实际音质类型
  */
 export const resolveQualityAlias = (source, type) => {
-  const activeApiId = settingState.setting['common.apiSource'];
+  const activeApiId = settingState.setting['common.apiSource']
   // 此逻辑仅适用于用户自定义API
   if (!/^user_api/.test(activeApiId)) {
-    console.log(`[LX Music SDK] No custom API detected (activeApiId: '${activeApiId}'), skipping quality alias resolution.`);
-    return type;
+    console.log(
+      `[LX Music SDK] No custom API detected (activeApiId: '${activeApiId}'), skipping quality alias resolution.`
+    )
+    return type
   }
-  const supportedQualities = global.lx.qualityList[source];
+  const supportedQualities = global.lx.qualityList[source]
   // console.log(`[LX Music SDK] Supported qualities for source '${source}':`, supportedQualities);
   // 如果没有找到该源的音质配置，则不进行转换
   if (!supportedQualities) {
-    console.log(`[LX Music SDK] No quality configuration found for source '${source}', skipping quality alias resolution.`);
-    return type;
+    console.log(
+      `[LX Music SDK] No quality configuration found for source '${source}', skipping quality alias resolution.`
+    )
+    return type
   }
   // 处理 'hires' 与 'flac24bit' 的别名情况
-  if (
-    type === 'hires' &&
-    !supportedQualities.includes('hires')
-  ) {
-    console.log(`[LX Music SDK] Resolving quality alias for source '${source}': 'hires' -> 'flac24bit'`);
-    return 'flac24bit';
+  const legacyAliases = {
+    hires: 'flac24bit',
+    atmos: 'effect',
+    atmos_plus: 'effect_plus',
+  }
+  const legacyType = legacyAliases[type]
+  if (legacyType && !supportedQualities.includes(type)) {
+    console.log(
+      `[LX Music SDK] Resolving quality alias for source '${source}': '${type}' -> '${legacyType}'`
+    )
+    return legacyType
   }
 
-  return type; // 如果没有匹配的别名规则，返回原始类型
-};
+  return type // 如果没有匹配的别名规则，返回原始类型
+}

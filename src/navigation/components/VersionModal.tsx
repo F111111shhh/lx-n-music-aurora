@@ -4,7 +4,6 @@ import { View, ScrollView } from 'react-native'
 import { compareVer, sizeFormate } from '@/utils'
 
 import Button from '@/components/common/Button'
-import { updateApp } from '@/utils/version'
 import { createStyle } from '@/utils/tools'
 import { useTheme } from '@/store/theme/hook'
 import { type VersionInfo } from '@/store/version/state'
@@ -185,9 +184,7 @@ const VersionModal = ({ componentId }: { componentId: string }) => {
   const handleConfirm = () => {
     if (versionInfo.isLatest || versionInfo.isUnknown) {
       void checkUpdate()
-    } else if (versionInfo.status == 'downloaded') {
-      void updateApp()
-    } else if (versionInfo.status == 'idle' || versionInfo.status == 'error') {
+    } else if (versionInfo.status == 'idle' || versionInfo.status == 'error' || versionInfo.status == 'downloaded') {
       downloadUpdate()
     }
   }

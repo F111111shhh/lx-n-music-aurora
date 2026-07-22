@@ -3,24 +3,39 @@ import {
   getPicUrl as getOnlinePicUrl,
   getLyricInfo as getOnlineLyricInfo,
 } from './online'
-import { buildLyricInfo, getCachedLyricInfo } from './utils'
+import { buildLyricInfo, getCachedLyricInfo, type ResolvedMusicUrl } from './utils'
 
 export const getMusicUrl = async ({
   musicInfo,
+  quality,
   isRefresh,
   allowToggleSource = true,
+  allowQualityFallback = true,
+  attemptedCandidates,
+  forceWyCookie,
+  onResolved,
   onToggleSource = () => {},
 }: {
   musicInfo: LX.Download.ListItem
+  quality?: LX.Quality
   isRefresh: boolean
   onToggleSource?: (musicInfo?: LX.Music.MusicInfoOnline) => void
   allowToggleSource?: boolean
+  allowQualityFallback?: boolean
+  attemptedCandidates?: Set<string>
+  forceWyCookie?: boolean
+  onResolved?: (result: ResolvedMusicUrl) => void
 }): Promise<string> => {
   return getOnlineMusicUrl({
     musicInfo: musicInfo.metadata.musicInfo,
+    quality,
     isRefresh,
     onToggleSource,
     allowToggleSource,
+    allowQualityFallback,
+    attemptedCandidates,
+    forceWyCookie,
+    onResolved,
   })
 }
 

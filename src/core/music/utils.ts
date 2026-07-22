@@ -11,7 +11,6 @@ import settingState from '@/store/setting/state'
 import { requestMsg } from '@/utils/message'
 import BackgroundTimer from 'react-native-background-timer'
 import { apis } from '@/utils/musicSdk/api-source'
-import wySdk from '@/utils/musicSdk/wy';
 
 const getOtherSourcePromises = new Map()
 export const existTimeExp = /\[\d{1,2}:.*\d{1,4}\]/
@@ -240,29 +239,70 @@ export const getOnlineOtherSourcePicByLocal = async (
 }
 
 export const TRY_QUALITYS_LIST = ['master', 'atmos_plus', 'atmos', 'hires', 'flac', '320k'] as const
-type TryQualityType = (typeof TRY_QUALITYS_LIST)[number]
-export const QUALITY_RANK: readonly LX.Quality[] = ['master', 'atmos_plus', 'atmos', 'hires', 'flac', '320k', '128k'];
+export const QUALITY_RANK: readonly LX.Quality[] = [
+  'master',
+  'atmos_plus',
+  'atmos',
+  'hires',
+  'flac',
+  '320k',
+  '128k',
+]
 
-const TX_QUALITY_FALLBACKS: Record<LX.Quality, LX.Quality[]> = {
-  master: ['master', 'hires', 'flac', '320k', '128k'],
-  atmos_plus: ['atmos_plus', 'atmos', 'hires', 'flac', '320k', '128k'],
-  atmos: ['atmos', 'hires', 'flac', '320k', '128k'],
-  hires: ['hires', 'flac', '320k', '128k'],
-  flac: ['flac', '320k', '128k'],
-  '320k': ['320k', '128k'],
-  '128k': ['128k'],
+export type MusicUrlFallbackStrategy = 'source-first' | 'quality-first'
+
+export interface ResolvedMusicUrl {
+  url: string
+  musicInfo: LX.Music.MusicInfoOnline
+  quality: LX.Quality
+  isFromCache: boolean
 }
 
-const getSameSourceQualityCandidates = (
+export type MusicUrlRequester = (
   musicInfo: LX.Music.MusicInfoOnline,
   quality: LX.Quality
+) => Promise<{ url: string; type?: LX.Quality | string }>
+
+const LEGACY_QUALITY_ALIASES: Partial<Record<LX.Quality, string>> = {
+  hires: 'flac24bit',
+  atmos: 'effect',
+  atmos_plus: 'effect_plus',
+}
+
+export const hasMusicQuality = (musicInfo: LX.Music.MusicInfoOnline, quality: LX.Quality) => {
+  const qualitys = musicInfo.meta._qualitys as Record<string, unknown>
+  return Boolean(qualitys[quality] || qualitys[LEGACY_QUALITY_ALIASES[quality] ?? ''])
+}
+
+export const getMusicUrlCandidateKey = (
+  musicInfo: LX.Music.MusicInfoOnline,
+  quality: LX.Quality
+) => `${musicInfo.source}_${musicInfo.id}_${quality}`
+
+export const getQualityCandidates = (
+  musicInfo: LX.Music.MusicInfoOnline,
+  quality: LX.Quality,
+  allowQualityFallback = true
 ): LX.Quality[] => {
-  const fallbackList = musicInfo.source == 'tx' ? TX_QUALITY_FALLBACKS[quality] : [quality]
-  const candidates = fallbackList.filter((itemQuality) => musicInfo.meta._qualitys[itemQuality])
+  if (!allowQualityFallback) return [quality]
+  const qualityIndex = QUALITY_RANK.indexOf(quality)
+  const fallbackList = QUALITY_RANK.slice(qualityIndex < 0 ? 0 : qualityIndex)
+  const candidates = fallbackList.filter(
+    (itemQuality) =>
+      itemQuality == quality || itemQuality == '128k' || hasMusicQuality(musicInfo, itemQuality)
+  )
   return candidates.length ? candidates : [quality]
 }
 
-const normalizeMusicUrlQuality = (quality: LX.Quality | string | undefined, fallback: LX.Quality): LX.Quality => {
+const getFallbackQualityRank = (quality: LX.Quality) => {
+  const qualityIndex = QUALITY_RANK.indexOf(quality)
+  return QUALITY_RANK.slice(qualityIndex < 0 ? 0 : qualityIndex)
+}
+
+export const normalizeMusicUrlQuality = (
+  quality: LX.Quality | string | undefined,
+  fallback: LX.Quality
+): LX.Quality => {
   switch (quality) {
     case 'flac24bit':
     case 'flac32bit':
@@ -311,101 +351,131 @@ export const getPlayQuality = (
   return '128k';
 }
 
+const defaultMusicUrlRequester: MusicUrlRequester = async (musicInfo, quality) => {
+  return musicSdk[musicInfo.source].getMusicUrl(toOldMusicInfo(musicInfo), quality).promise
+}
+
+const createMusicUrlCandidateResolver = ({
+  isRefresh,
+  attemptedCandidates,
+  requestMusicUrl,
+  originalMusicInfo,
+  onToggleSource,
+}: {
+  isRefresh: boolean
+  attemptedCandidates: Set<string>
+  requestMusicUrl: MusicUrlRequester
+  originalMusicInfo: LX.Music.MusicInfoOnline
+  onToggleSource: (musicInfo?: LX.Music.MusicInfoOnline) => void
+}) => {
+  let lastError: any
+  let previousMusicKey = `${originalMusicInfo.source}_${originalMusicInfo.id}`
+
+  const tryCandidate = async (
+    musicInfo: LX.Music.MusicInfoOnline,
+    quality: LX.Quality
+  ): Promise<ResolvedMusicUrl | null> => {
+    const candidateKey = getMusicUrlCandidateKey(musicInfo, quality)
+    if (attemptedCandidates.has(candidateKey)) return null
+
+    const musicKey = `${musicInfo.source}_${musicInfo.id}`
+    if (musicKey != previousMusicKey) {
+      previousMusicKey = musicKey
+      onToggleSource(musicInfo)
+    }
+
+    if (!isRefresh) {
+      const cachedUrl = await getStoreMusicUrl(musicInfo, quality)
+      if (cachedUrl) {
+        attemptedCandidates.add(candidateKey)
+        return { url: cachedUrl, musicInfo, quality, isFromCache: true }
+      }
+    }
+
+    try {
+      const { url, type } = await requestMusicUrl(musicInfo, quality)
+      if (!url) throw new Error('empty url')
+      const resolvedQuality = normalizeMusicUrlQuality(type, quality)
+      if (resolvedQuality != quality) {
+        throw new Error(`quality mismatch: requested ${quality}, received ${resolvedQuality}`)
+      }
+      attemptedCandidates.add(candidateKey)
+      return { url, musicInfo, quality: resolvedQuality, isFromCache: false }
+    } catch (err: any) {
+      if (err.message == requestMsg.tooManyRequests) throw err
+      attemptedCandidates.add(candidateKey)
+      lastError = err
+      console.log(`[Music URL] ${candidateKey} failed:`, err)
+      return null
+    }
+  }
+
+  return {
+    tryCandidate,
+    getLastError: () => lastError,
+  }
+}
+
+const getUniqueOtherSourceMusicInfos = (
+  originalMusicInfo: LX.Music.MusicInfoOnline,
+  musicInfos: LX.Music.MusicInfoOnline[]
+) => {
+  const sources = new Set<LX.OnlineSource>([originalMusicInfo.source])
+  const result: LX.Music.MusicInfoOnline[] = []
+  for (const musicInfo of musicInfos) {
+    if (sources.has(musicInfo.source) || !assertApiSupport(musicInfo.source)) continue
+    sources.add(musicInfo.source)
+    result.push(musicInfo)
+  }
+  return result
+}
+
 export const getOnlineOtherSourceMusicUrl = async ({
   musicInfos,
   quality,
   onToggleSource,
   isRefresh,
   retryedSource = [],
+  allowQualityFallback = true,
+  attemptedCandidates = new Set<string>(),
+  requestMusicUrl = defaultMusicUrlRequester,
 }: {
   musicInfos: LX.Music.MusicInfoOnline[]
   quality?: LX.Quality
   onToggleSource: (musicInfo?: LX.Music.MusicInfoOnline) => void
   isRefresh: boolean
   retryedSource?: LX.OnlineSource[]
-}): Promise<{
-  url: string
-  musicInfo: LX.Music.MusicInfoOnline
-  quality: LX.Quality
-  isFromCache: boolean
-}> => {
+  allowQualityFallback?: boolean
+  attemptedCandidates?: Set<string>
+  requestMusicUrl?: MusicUrlRequester
+}): Promise<ResolvedMusicUrl> => {
   if (!(await global.lx.apiInitPromise[0])) throw new Error('source init failed')
 
-  let musicInfo: LX.Music.MusicInfoOnline | null = null
-  let itemQualitys: LX.Quality[] = []
+  const originalMusicInfo = musicInfos[0]
+  if (!originalMusicInfo) throw new Error(global.i18n.t('toggle_source_failed'))
+  const resolver = createMusicUrlCandidateResolver({
+    isRefresh,
+    attemptedCandidates,
+    requestMusicUrl,
+    originalMusicInfo,
+    onToggleSource,
+  })
 
-  while ((musicInfo = musicInfos.shift()!)) {
-    if (retryedSource.includes(musicInfo.source)) continue
+  for (const musicInfo of musicInfos) {
+    if (retryedSource.includes(musicInfo.source) || !assertApiSupport(musicInfo.source)) continue
     retryedSource.push(musicInfo.source)
-    if (!assertApiSupport(musicInfo.source)) continue
-    const itemQuality = quality ?? getPlayQuality(settingState.setting['player.playQuality'], musicInfo)
-    itemQualitys = getSameSourceQualityCandidates(musicInfo, itemQuality)
-    if (!itemQualitys.length) continue
-
-    console.log(
-      'try toggle to: ',
-      musicInfo.source,
-      musicInfo.name,
-      musicInfo.singer,
-      musicInfo.interval
-    )
-    onToggleSource(musicInfo)
-    break
-  }
-  if (!musicInfo || !itemQualitys.length) throw new Error(global.i18n.t('toggle_source_failed'))
-
-  return getOnlineMusicUrlBySameSource({ musicInfo, qualitys: itemQualitys, isRefresh })
-    .then(({ url, quality, isFromCache }) => ({ musicInfo, url, quality, isFromCache }))
-    .catch((err: any) => {
-      if (err.message == requestMsg.tooManyRequests) throw err
-      console.log(err)
-      return getOnlineOtherSourceMusicUrl({
-        musicInfos,
-        quality,
-        onToggleSource,
-        isRefresh,
-        retryedSource,
-      })
-    })
-}
-
-const getOnlineMusicUrlBySameSource = async ({
-  musicInfo,
-  qualitys,
-  isRefresh,
-}: {
-  musicInfo: LX.Music.MusicInfoOnline
-  qualitys: LX.Quality[]
-  isRefresh: boolean
-}): Promise<{
-  url: string
-  quality: LX.Quality
-  isFromCache: boolean
-}> => {
-  let lastError: any
-
-  for (const itemQuality of qualitys) {
-    const cachedUrl = await getStoreMusicUrl(musicInfo, itemQuality)
-    if (cachedUrl && !isRefresh) return { url: cachedUrl, quality: itemQuality, isFromCache: true }
-
-    try {
-      const { url, type } = await musicSdk[musicInfo.source].getMusicUrl(
-        toOldMusicInfo(musicInfo),
-        itemQuality
-      ).promise
-      if (!url) throw new Error('empty url')
-      return {
-        url,
-        quality: normalizeMusicUrlQuality(type, itemQuality),
-        isFromCache: false,
-      }
-    } catch (err: any) {
-      if (err.message == requestMsg.tooManyRequests) throw err
-      lastError = err
+    const targetQuality = quality ?? getPlayQuality(settingState.setting['player.playQuality'], musicInfo)
+    for (const itemQuality of getQualityCandidates(
+      musicInfo,
+      targetQuality,
+      allowQualityFallback
+    )) {
+      const result = await resolver.tryCandidate(musicInfo, itemQuality)
+      if (result) return result
     }
   }
 
-  throw lastError ?? new Error('failed')
+  throw resolver.getLastError() ?? new Error(global.i18n.t('toggle_source_failed'))
 }
 
 /**
@@ -417,46 +487,83 @@ export const handleGetOnlineMusicUrl = async ({
   onToggleSource,
   isRefresh,
   allowToggleSource,
+  allowQualityFallback = true,
+  fallbackStrategy = settingState.setting['player.urlFallbackStrategy'],
+  attemptedCandidates = new Set<string>(),
+  requestMusicUrl = defaultMusicUrlRequester,
 }: {
   musicInfo: LX.Music.MusicInfoOnline
   quality?: LX.Quality
   isRefresh: boolean
   allowToggleSource: boolean
+  allowQualityFallback?: boolean
+  fallbackStrategy?: MusicUrlFallbackStrategy
+  attemptedCandidates?: Set<string>
+  requestMusicUrl?: MusicUrlRequester
   onToggleSource: (musicInfo?: LX.Music.MusicInfoOnline) => void
-}): Promise<{
-  url: string
-  musicInfo: LX.Music.MusicInfoOnline
-  quality: LX.Quality
-  isFromCache: boolean
-}> => {
+}): Promise<ResolvedMusicUrl> => {
   if (!(await global.lx.apiInitPromise[0])) throw new Error('source init failed')
-  // console.log(musicInfo.source)
-  const targetQuality =
-    quality ?? getPlayQuality(settingState.setting['player.playQuality'], musicInfo)
-  const qualitys = getSameSourceQualityCandidates(musicInfo, targetQuality)
+  const targetQuality = quality ?? getPlayQuality(settingState.setting['player.playQuality'], musicInfo)
+  const resolver = createMusicUrlCandidateResolver({
+    isRefresh,
+    attemptedCandidates,
+    requestMusicUrl,
+    originalMusicInfo: musicInfo,
+    onToggleSource,
+  })
+  const originalQualitys = getQualityCandidates(musicInfo, targetQuality, allowQualityFallback)
 
-  return getOnlineMusicUrlBySameSource({ musicInfo, qualitys, isRefresh })
-    .then(({ url, quality, isFromCache }) => {
-      return { musicInfo, url, quality, isFromCache }
-    })
-    .catch(async (err: any) => {
-      if (!allowToggleSource || err.message == requestMsg.tooManyRequests) throw err
-      onToggleSource()
+  const findOtherSource = async () => {
+    try {
+      return getUniqueOtherSourceMusicInfos(musicInfo, await getOtherSource(musicInfo))
+    } catch (err) {
+      console.log('[Music URL] Failed to find alternative sources:', err)
+      return []
+    }
+  }
 
-      return getOtherSource(musicInfo).then((otherSource) => {
-        // console.log('find otherSource', otherSource.length)
-        if (otherSource.length) {
-          return getOnlineOtherSourceMusicUrl({
-            musicInfos: [...otherSource],
-            onToggleSource,
-            quality,
-            isRefresh,
-            retryedSource: [musicInfo.source],
-          })
+  if (fallbackStrategy == 'source-first') {
+    for (const itemQuality of originalQualitys) {
+      const result = await resolver.tryCandidate(musicInfo, itemQuality)
+      if (result) return result
+    }
+
+    if (allowToggleSource) {
+      const otherSource = await findOtherSource()
+      for (const otherMusicInfo of otherSource) {
+        for (const itemQuality of getQualityCandidates(
+          otherMusicInfo,
+          targetQuality,
+          allowQualityFallback
+        )) {
+          const result = await resolver.tryCandidate(otherMusicInfo, itemQuality)
+          if (result) return result
         }
-        throw err
-      })
-    })
+      }
+    }
+  } else {
+    const otherSource = allowToggleSource ? await findOtherSource() : []
+    const sourceCandidates = [musicInfo, ...otherSource]
+    const qualityCandidates = allowQualityFallback
+      ? getFallbackQualityRank(targetQuality)
+      : [targetQuality]
+
+    for (const itemQuality of qualityCandidates) {
+      for (const sourceMusicInfo of sourceCandidates) {
+        if (
+          itemQuality != targetQuality &&
+          itemQuality != '128k' &&
+          !hasMusicQuality(sourceMusicInfo, itemQuality)
+        ) {
+          continue
+        }
+        const result = await resolver.tryCandidate(sourceMusicInfo, itemQuality)
+        if (result) return result
+      }
+    }
+  }
+
+  throw resolver.getLastError() ?? new Error(global.i18n.t('toggle_source_failed'))
 }
 
 export const getOnlineOtherSourcePicUrl = async ({
@@ -495,9 +602,11 @@ export const getOnlineOtherSourcePicUrl = async ({
   if (musicInfo.meta.picUrl && !isRefresh)
     return { musicInfo, url: musicInfo.meta.picUrl, isFromCache: true }
 
-  let reqPromise
+  let reqPromise: Promise<string>
   try {
-    reqPromise = musicSdk[musicInfo.source].getPic(toOldMusicInfo(musicInfo))
+    reqPromise = musicSdk[musicInfo.source].getPic(
+      toOldMusicInfo(musicInfo)
+    ) as Promise<string>
   } catch (err: any) {
     reqPromise = Promise.reject(err)
   }
@@ -531,9 +640,11 @@ export const handleGetOnlinePicUrl = async ({
   isFromCache: boolean
 }> => {
   // console.log(musicInfo.source)
-  let reqPromise
+  let reqPromise: Promise<string>
   try {
-    reqPromise = musicSdk[musicInfo.source].getPic(toOldMusicInfo(musicInfo))
+    reqPromise = musicSdk[musicInfo.source].getPic(
+      toOldMusicInfo(musicInfo)
+    ) as Promise<string>
   } catch (err) {
     reqPromise = Promise.reject(err)
   }

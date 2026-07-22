@@ -51,7 +51,7 @@ export const toNewMusicInfo = (oldMusicInfo: any): LX.Music.MusicInfo => {
     meta.mv = oldMusicInfo.meta?.mv
     meta.noCopyrightRcmd = oldMusicInfo.noCopyrightRcmd || oldMusicInfo.meta?.noCopyrightRcmd
     if (oldMusicInfo.originCoverType || oldMusicInfo.meta?.originCoverType) {
-      meta.originCoverType = oldMusicInfo.originCoverType || oldMusicInfo.meta.originCoverType;
+      meta.originCoverType = oldMusicInfo.originCoverType || oldMusicInfo.meta.originCoverType
     }
     meta.qualitys = oldMusicInfo.types
     meta._qualitys = oldMusicInfo._types
@@ -137,8 +137,31 @@ export const toOldMusicInfo = (minfo: LX.Music.MusicInfo): any => {
     oInfo._types = {}
   } else {
     oInfo.albumId = minfo.meta.albumId
-    oInfo.types = minfo.meta.qualitys
-    oInfo._types = minfo.meta._qualitys
+    // Restore legacy aliases for user APIs after LX-N normalizes quality names.
+    oInfo.types = Array.isArray(minfo.meta.qualitys)
+      ? minfo.meta.qualitys.map((quality) => ({ ...quality }))
+      : []
+    oInfo._types = { ...(minfo.meta._qualitys ?? {}) }
+    const supportedQualities = global.lx.qualityList[minfo.source]
+    const legacyAliases: Array<[string, string]> = [
+      ['hires', 'flac24bit'],
+      ['atmos', 'effect'],
+      ['atmos_plus', 'effect_plus'],
+    ]
+    if (supportedQualities) {
+      for (const [currentType, legacyType] of legacyAliases) {
+        if (supportedQualities.includes(currentType as LX.Quality)) continue
+        const qualityInfo = oInfo._types[currentType]
+        if (!qualityInfo || oInfo._types[legacyType]) continue
+        oInfo._types[legacyType] = qualityInfo
+        if (!oInfo.types.some((quality: { type?: string }) => quality.type == legacyType)) {
+          const typeInfo = oInfo.types.find(
+            (quality: { type?: string }) => quality.type == currentType
+          )
+          oInfo.types.push(typeInfo ? { ...typeInfo, type: legacyType } : { type: legacyType })
+        }
+      }
+    }
     oInfo.noCopyrightRcmd = minfo.meta.noCopyrightRcmd
 
     switch (minfo.source) {

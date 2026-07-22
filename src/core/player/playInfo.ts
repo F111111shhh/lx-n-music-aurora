@@ -90,6 +90,8 @@ export const resetPlayerMusicInfo = () => {
     name: '',
     singer: '',
     album: '',
+    quality: null,
+    source: null,
   })
 }
 
@@ -109,6 +111,8 @@ const setPlayerMusicInfo = (musicInfo: LX.Music.MusicInfo | LX.Download.ListItem
             rlrc: null,
             lxlrc: null,
             rawlrc: null,
+            quality: null,
+            source: null,
           }
         : {
             id: musicInfo.id,
@@ -122,6 +126,8 @@ const setPlayerMusicInfo = (musicInfo: LX.Music.MusicInfo | LX.Download.ListItem
             rlrc: null,
             lxlrc: null,
             rawlrc: null,
+            quality: null,
+            source: null,
           }
     )
   } else resetPlayerMusicInfo()

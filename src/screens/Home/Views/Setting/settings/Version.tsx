@@ -5,6 +5,7 @@ import Section from '../components/Section'
 import SubTitle from '../components/SubTitle'
 import Button from '../components/Button'
 import { sizeFormate } from '@/utils'
+import { toast } from '@/utils/tools'
 
 import { useI18n } from '@/lang'
 import { useVersionDownloadProgressUpdated, useVersionInfo } from '@/store/version/hook'
@@ -23,6 +24,10 @@ export default memo(() => {
   const handleOpenVersionModal = () => {
     // setVersionInfo({ showModal: true })
     showModal()
+  }
+  const handleCheckUpdate = () => {
+    void checkUpdate(true)
+    toast('更新检测已关闭', 'short')
   }
 
   useEffect(() => {
@@ -84,7 +89,7 @@ export default memo(() => {
         </View>
         <View style={styles.btn}>
           <Button onPress={handleOpenVersionModal}>{t('setting_version_show_ver_modal')}</Button>
-          <Button onPress={checkUpdate}>{t('version_btn_check_update')}</Button>
+          <Button onPress={handleCheckUpdate}>{t('version_btn_check_update')}</Button>
         </View>
 
         <IsAutoCheckUpdate />

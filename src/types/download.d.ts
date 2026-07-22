@@ -21,6 +21,8 @@ declare namespace LX {
       filePath: string;
       fileName: string;
       isForceCookie?: boolean;
+      resolvedQuality?: LX.Quality;
+      resolvedSource?: LX.OnlineSource;
       isRemoteSynced?: boolean;
     }
   }

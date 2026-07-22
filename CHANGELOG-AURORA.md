@@ -1,27 +1,26 @@
 # LX-N Music Aurora Changelog
 
-## 1.8.85-aurora.1 - 2026-07-07
+## 1.8.85-aurora.2 - 2026-07-22
 
 ### 中文
 
-- 基于 `souvenp/lx-netease-music-mobile` 的 LX-N Music `1.8.85` 正式源码提交 `ab08729`。
-- 修复 QQ 音源搜索偶发加载失败：增加重试、退避等待、空结果重试和缺字段保护。
-- 修复 QQ 音源播放容易自动切到其它来源的问题：QQ 歌曲优先在 QQ 同源内按音质降级尝试。
-- 修复 QQ 音源下载可能产生 0B 文件的问题：下载空文件会删除并继续尝试可用 QQ 音质。
-- 修复 QQ URL 缓存复用过期链接、被其它来源结果污染的问题。
-- 调整播放入口、列表播放和下一首预加载逻辑，减少 QQ 音源被错误切源。
-- 保留原 LX-N Music 主要功能、界面和使用习惯。
+- 基于已验证的 LX-N Music 1.8.85 Aurora 功能源码发布正式下游版本。
+- 播放和下载统一使用可选的“同源优先”或“同音质优先”链接回退策略。
+- 播放详情增加当前实际音质显示与可用音质切换入口。
+- 包含 QQ、酷我及其它音源的音质映射、候选 URL、下载空文件和歌词体验改进。
+- 使用独立的 Release 签名并提供可长期维护的 <code>main</code> 上游跟踪与
+  <code>aurora</code> 下游分支结构。
 
 ### English
 
-- Based on upstream LX-N Music `1.8.85` commit `ab08729` from
-  `souvenp/lx-netease-music-mobile`.
-- Improved QQ source search stability with retry, backoff, empty-result retry,
-  and defensive field handling.
-- Kept QQ playback on the QQ source first, with same-source quality fallback.
-- Improved QQ downloads by removing 0-byte files and retrying available QQ
-  qualities.
-- Avoided stale QQ URL reuse and prevented cross-source cache pollution.
-- Adjusted playback entry points, list playback, and next-track preloading to
-  reduce unintended source switching.
-- Preserved the main LX-N Music feature set, interface, and usage patterns.
+- Publishes the verified LX-N Music 1.8.85 Aurora feature set as a formal
+  downstream release.
+- Unifies playback and download URL fallback through selectable source-first
+  and quality-first strategies.
+- Adds actual playback-quality display and per-track quality selection in the
+  play detail screen.
+- Includes quality mapping, URL candidate, empty-download, and lyric
+  improvements for QQ, Kuwo, and other sources.
+- Uses an independent Release signing key and establishes a maintainable
+  upstream-tracking <code>main</code> branch with a downstream
+  <code>aurora</code> branch.

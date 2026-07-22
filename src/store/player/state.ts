@@ -61,6 +61,8 @@ const state: InitState = {
     alias: '',
     singer: '',
     album: '',
+    quality: null,
+    source: null,
   },
 
   isPlay: false,

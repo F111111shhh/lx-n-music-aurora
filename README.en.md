@@ -1,57 +1,82 @@
 # LX-N Music Aurora
 
-[中文](README.md)
+<p align="right"><a href="./README.md">简体中文</a> | <a href="./README.en.md">English</a></p>
 
 LX-N Music Aurora is an unofficial maintenance fork of
-[`souvenp/lx-netease-music-mobile`](https://github.com/souvenp/lx-netease-music-mobile),
-focused on QQ Music source stability fixes for the LX-N Music 1.8.85 code line.
+[souvenp/lx-netease-music-mobile](https://github.com/souvenp/lx-netease-music-mobile).
+It retains the main LX-N Music feature set while packaging the current Aurora
+improvements for playback, downloads, source fallback, and lyrics.
 
-> This project is not officially affiliated with LX Music, LX-N Music, QQ Music,
-> NetEase Cloud Music, or any music service provider.
+> This project is not officially affiliated with LX Music, LX-N Music, or any
+> music service provider.
 
-## Project Scope
+## Release Information
 
-- Project name: LX-N Music Aurora
-- Release version: `1.8.85-aurora.1`
-- Git tag: `v1.8.85-aurora.1`
-- Upstream: `souvenp/lx-netease-music-mobile`
-- Baseline: upstream commit `ab08729`, matching LX-N Music `1.8.85`
-- License: inherited from upstream, `Apache-2.0`
+- Current version: <code>1.8.85-aurora.2</code>
+- Release tag: <code>v1.8.85-aurora.2</code>
+- Android package id: <code>com.lxnetease.music.mobile</code>
+- Android display name: <code>LX-N Music Aurora</code>
+- Upstream: <code>souvenp/lx-netease-music-mobile</code>
+- License: upstream [Apache License 2.0](LICENSE)
 
-Aurora only packages the QQ Music source fixes while keeping the original LX-N Music features, interface, and usage patterns as intact as possible.
+Branch convention:
 
-## Fixes
+- <code>main</code> tracks upstream <code>main</code> and contains no
+  Aurora-specific changes.
+- <code>aurora</code> is the downstream development and release branch.
 
-- Adds retry, backoff, and empty-result guards for QQ source search.
-- Keeps QQ playback on the QQ source first, with same-source quality fallback to reduce unintended switching to other sources.
-- Applies the same QQ quality fallback strategy to downloads and removes 0-byte files before retrying.
-- Avoids reusing stale QQ URLs and prevents cross-source fallback results from polluting QQ URL cache entries.
-- Preserves same-source behavior for list playback, next-track preloading, and manual playback actions.
-- Adds defensive parsing for QQ search result fields that may be absent in some responses.
+## Aurora Functionality
 
-## Preserved Behavior
+- Playback and downloads share configurable URL fallback strategies:
+  - **Source first** tries the current source through its available qualities
+    before considering other sources.
+  - **Quality first** tries the requested quality across all candidate sources,
+    then progressively lowers the quality.
+- Handles quality aliases and URL candidates used by QQ Music, Kuwo, and other
+  sources to reduce unnecessary source switching, expired URLs, and empty downloads.
+- Shows the actual playback quality below the progress bar; tap it to inspect
+  and select an available quality for the current track.
+- Includes Aurora lyric improvements for active-line highlighting, scaling,
+  tap preview, and scroll synchronization.
+- Does not intentionally remove existing sources, playlists, downloads, sync,
+  settings, or other common LX-N Music features.
 
-- Android package id remains `com.lxnetease.music.mobile`, so the original app data directory and system associations can still be used.
-- Existing LX-N Music features are intentionally kept.
-- GitHub source metadata, Release title, APK display name, and APK version name all use the Aurora identity.
+## Installation
 
-## Install
+Download the universal APK from
+[GitHub Releases](https://github.com/F111111shhh/lx-n-music-aurora/releases).
 
-Download the APK from GitHub Releases. After installation, Android should show the app as `LX-N Music Aurora` with version name `1.8.85-aurora.1`.
+This release uses a new private Release signing key. Android cannot install it
+over an older Aurora build, stock LX-N Music build, or another same-package
+build signed with a different key. Export important settings, playlists, and
+data before uninstalling the older build for this one-time migration. Future
+Aurora releases will use the same key and can update in place.
 
-The APK is signed with a debug certificate. If another LX-N Music build signed with a different certificate is already installed, Android may reject an in-place upgrade. Back up your app data before uninstalling an existing build.
+## Build And Upstream Sync
 
-## Verification
+Local builds use Node.js, Android SDK, and Gradle:
 
-- APK asset: `LX-N-Music-Aurora_1.8.85-aurora.1.apk`
-- Package id: `com.lxnetease.music.mobile`
-- Display name: `LX-N Music Aurora`
-- Version name: `1.8.85-aurora.1`
-- versionCode: `70004`
-- SHA-256: `2F0D17C5BD137C0C2E9BEC8A148C77AC76208BF69D0B0F3D5FBF665BF816A125`
-- APK signature: v1 / v2 / v3 verified
-- No phone or emulator was connected in this environment, so no automated on-device playback/download regression test was run
+~~~powershell
+npm run pack:android
+~~~
 
-## Legal Notice
+The Release key and <code>android/keystore.properties</code> stay local and
+must never be committed to Git.
 
-This repository is provided for personal study, maintenance, and compatibility fixes. External source scripts, playback, and downloads may be governed by third-party service terms, regional law, and copyright rules. Use responsibly.
+For upstream updates, update <code>main</code> first, validate it, then merge
+it into <code>aurora</code>:
+
+~~~powershell
+git checkout main
+git fetch upstream
+git merge --ff-only upstream/main
+git push origin main
+git checkout aurora
+git merge main
+~~~
+
+## Notice
+
+This is a personally maintained compatibility branch. External source scripts,
+network playback, and downloads may be governed by service terms, regional
+restrictions, and copyright law. Confirm that your use is compliant.

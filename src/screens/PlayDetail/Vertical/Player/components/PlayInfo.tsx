@@ -8,6 +8,8 @@ import { useTheme } from '@/store/theme/hook'
 import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
 import { useBufferProgress } from '@/plugins/player'
+import CurrentQuality from '@/screens/PlayDetail/components/CurrentQuality'
+import { useStatusText } from '@/store/player/hook'
 
 // const FONT_SIZE = 13
 
@@ -27,6 +29,7 @@ const PlayTimeMax = memo(({ timeStr }: { timeStr: string }) => {
 export default () => {
   const { maxPlayTimeStr, nowPlayTimeStr, progress, maxPlayTime } = useProgress()
   const buffered = useBufferProgress()
+  const statusText = useStatusText()
 
   // console.log('render playInfo')
 
@@ -38,7 +41,7 @@ export default () => {
       <View style={styles.info}>
         <PlayTimeCurrent timeStr={nowPlayTimeStr} />
         <View style={styles.status}>
-          <Status />
+          {statusText ? <Status /> : <CurrentQuality />}
         </View>
         <PlayTimeMax timeStr={maxPlayTimeStr} />
       </View>
@@ -64,5 +67,6 @@ const styles = createStyle({
     flexShrink: 1,
     paddingLeft: 10,
     paddingRight: 10,
+    alignItems: 'center',
   },
 })

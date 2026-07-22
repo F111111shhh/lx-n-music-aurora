@@ -5,6 +5,12 @@ export type Line = Lines[number]
 type PlayHook = (line: number, text: string) => void
 type SetLyricHook = (lines: Lines) => void
 
+// lrc-file-parser expects millisecond fractions, while ordinary LRC tags often use centiseconds.
+const normalizeLyricTimeTags = (lyric: string) => lyric.replace(
+  /\[(\d{1,3}):(\d{1,2})\.(\d{1,3})\]/g,
+  (_, minute: string, second: string, fraction: string) => `[${minute}:${second}.${fraction.padEnd(3, '0')}]`,
+)
+
 const lrcTools = {
   isInited: false,
   lrc: null as Lyric | null,
@@ -24,7 +30,7 @@ const lrcTools = {
     this.lrc = new Lyric({
       onPlay: this.onPlay.bind(this),
       onSetLyric: this.onSetLyric.bind(this),
-      offset: 100, // offset time(ms), default is 150 ms
+      offset: 0,
     })
   },
   onPlay(line: number, text: string) {
@@ -68,9 +74,9 @@ export const init = async () => {
 
 export const setLyric = (lyric: string, translation?: string, romalrc?: string) => {
   lrcTools.isPlay = false
-  lrcTools.lyricText = lyric
-  lrcTools.translationText = translation
-  lrcTools.romaText = romalrc
+  lrcTools.lyricText = normalizeLyricTimeTags(lyric)
+  lrcTools.translationText = translation == null ? translation : normalizeLyricTimeTags(translation)
+  lrcTools.romaText = romalrc == null ? romalrc : normalizeLyricTimeTags(romalrc)
   lrcTools.setLyric()
 }
 export const setPlaybackRate = (playbackRate: number) => {

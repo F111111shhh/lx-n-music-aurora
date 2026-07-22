@@ -144,6 +144,11 @@ declare global {
       'player.playQuality': LX.Quality
 
       /**
+       * 音源与音质失败后的候选遍历顺序
+       */
+      'player.urlFallbackStrategy': 'source-first' | 'quality-first'
+
+      /**
        * 启动软件时是否恢复上次播放进度
        */
       'player.isSavePlayTime': boolean

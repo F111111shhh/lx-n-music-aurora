@@ -37,37 +37,54 @@ const formatMusicInfo = (musicInfo: LX.Player.PlayMusic) => {
   }
 }
 
-const getTrackSource = (musicInfo: LX.Player.PlayMusic) => {
+const getTrackSource = (musicInfo: LX.Player.PlayMusic, source?: LX.OnlineSource) => {
+  if (source) return source
   return 'progress' in musicInfo ? musicInfo.metadata.musicInfo.source : musicInfo.source
 }
 
-const getTrackHeaders = (musicInfo: LX.Player.PlayMusic, url?: string) => {
+const getTrackHeaders = (
+  musicInfo: LX.Player.PlayMusic,
+  url?: string,
+  source?: LX.OnlineSource
+) => {
   if (!url || !/^https?:\/\//.test(url) || wyMediaUrlRxp.test(url)) return undefined
-  const source = getTrackSource(musicInfo)
-  return source === 'wy' ? wyStreamHeaders : undefined
+  return getTrackSource(musicInfo, source) === 'wy' ? wyStreamHeaders : undefined
 }
 
-const getTrackUserAgent = (musicInfo: LX.Player.PlayMusic, url?: string) => {
+const getTrackUserAgent = (
+  musicInfo: LX.Player.PlayMusic,
+  url?: string,
+  source?: LX.OnlineSource
+) => {
   if (!url || !/^https?:\/\//.test(url)) return undefined
-  if (getTrackSource(musicInfo) === 'wy' && wyMediaUrlRxp.test(url)) return ''
+  if (getTrackSource(musicInfo, source) === 'wy' && wyMediaUrlRxp.test(url)) return ''
   return defaultUserAgent
 }
 
-const buildTrackExtra = (musicInfo: LX.Player.PlayMusic, url?: string) => {
-  const headers = getTrackHeaders(musicInfo, url)
-  const userAgent = getTrackUserAgent(musicInfo, url)
+const buildTrackExtra = (
+  musicInfo: LX.Player.PlayMusic,
+  url?: string,
+  source?: LX.OnlineSource
+) => {
+  const headers = getTrackHeaders(musicInfo, url, source)
+  const userAgent = getTrackUserAgent(musicInfo, url, source)
   return {
     ...(userAgent != null ? { userAgent } : {}),
     ...(headers ? { headers } : {}),
   }
 }
 
-const buildTracks = (musicInfo: LX.Player.PlayMusic, url?: LX.Player.Track['url'], duration?: LX.Player.Track['duration']): LX.Player.Track[] => {
+const buildTracks = (
+  musicInfo: LX.Player.PlayMusic,
+  url?: LX.Player.Track['url'],
+  duration?: LX.Player.Track['duration'],
+  source?: LX.OnlineSource
+): LX.Player.Track[] => {
   const mInfo = formatMusicInfo(musicInfo)
   const track = [] as LX.Player.Track[]
   const album = mInfo.album || undefined
   const artwork = mInfo.pic && httpRxp.test(mInfo.pic) ? mInfo.pic : undefined
-  const extra = typeof url === 'string' ? buildTrackExtra(musicInfo, url) : {}
+  const extra = typeof url === 'string' ? buildTrackExtra(musicInfo, url, source) : {}
   if (url) {
     track.push({
       id: `${mInfo.id}__//${Math.random()}__//${url}`,
@@ -168,9 +185,14 @@ export const initTrackInfo = async (musicInfo: LX.Player.PlayMusic, mInfo: LX.Pl
 }
 
 
-const handlePlayMusic = async (musicInfo: LX.Player.PlayMusic, url: string, time: number) => {
+const handlePlayMusic = async (
+  musicInfo: LX.Player.PlayMusic,
+  url: string,
+  time: number,
+  source?: LX.OnlineSource
+) => {
   // console.log(tracks, time)
-  const tracks = buildTracks(musicInfo, url)
+  const tracks = buildTracks(musicInfo, url, undefined, source)
   const track = tracks[0]
   // await updateMusicInfo(track)
   const currentTrackIndex = await TrackPlayer.getCurrentTrack()
@@ -206,11 +228,16 @@ const handlePlayMusic = async (musicInfo: LX.Player.PlayMusic, url: string, time
 }
 let playPromise = Promise.resolve()
 let actionId = Math.random()
-export const playMusic = (musicInfo: LX.Player.PlayMusic, url: string, time: number) => {
+export const playMusic = (
+  musicInfo: LX.Player.PlayMusic,
+  url: string,
+  time: number,
+  source?: LX.OnlineSource
+) => {
   const id = actionId = Math.random()
   void playPromise.finally(() => {
     if (id != actionId) return
-    playPromise = handlePlayMusic(musicInfo, url, time)
+    playPromise = handlePlayMusic(musicInfo, url, time, source)
   })
 }
 

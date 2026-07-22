@@ -11,7 +11,7 @@ import downloadActions from '@/store/download/action';
 import {filterFileName, sizeFormate} from "@/utils";
 import { getPicUrl } from '@/core/music/online'
 import DownloadTask = LX.Download.DownloadTask
-import wySdk from '@/utils/musicSdk/wy'
+import type { ResolvedMusicUrl } from '@/core/music/utils'
 
 const taskQueue: DownloadTask[] = [];
 let isProcessing = false;
@@ -21,30 +21,8 @@ const DOWNLOAD_HEADERS = {
 const WY_MEDIA_HEADERS = {
   'User-Agent': '',
 }
-const TX_DOWNLOAD_QUALITY_FALLBACKS: Record<LX.Quality, LX.Quality[]> = {
-  master: ['master', 'hires', 'flac', '320k', '128k'],
-  atmos_plus: ['atmos_plus', 'atmos', 'hires', 'flac', '320k', '128k'],
-  atmos: ['atmos', 'hires', 'flac', '320k', '128k'],
-  hires: ['hires', 'flac', '320k', '128k'],
-  flac: ['flac', '320k', '128k'],
-  '320k': ['320k', '128k'],
-  '128k': ['128k'],
-}
-const getDownloadHeaders = (task: DownloadTask) => {
-  return task.musicInfo.source === 'wy' ? WY_MEDIA_HEADERS : DOWNLOAD_HEADERS
-}
 let currentDownloadTask: any | null = null;
-
-const getDownloadQualityCandidates = (
-  musicInfo: LX.Music.MusicInfoOnline,
-  quality: LX.Quality
-) => {
-  if (musicInfo.source != 'tx') return [quality]
-  const candidates = TX_DOWNLOAD_QUALITY_FALLBACKS[quality].filter(
-    (itemQuality) => musicInfo.meta._qualitys[itemQuality]
-  )
-  return candidates.length ? candidates : [quality]
-}
+let currentDownloadTaskId: string | null = null;
 
 const getDownloadFilePath = (filePath: string, quality: LX.Quality) => {
   const extension = getFileExtension(quality)
@@ -65,6 +43,139 @@ const removeFileQuietly = async (filePath: string) => {
   }
 }
 
+const isDownloadTaskActive = (taskId: string) =>
+  downloadState.tasks.some((task) => task.id == taskId)
+
+const getResolvedDownloadHeaders = (source: LX.Source) =>
+  source == 'wy' ? WY_MEDIA_HEADERS : DOWNLOAD_HEADERS
+
+const startDownloadWithUnifiedRetry = async (task: DownloadTask) => {
+  downloadActions.updateTask(task.id, { status: 'downloading' })
+  await requestStoragePermission()
+
+  if (!task.isForceCookie) toast(`${task.fileName} 正在下载...`, 'short')
+
+  const attemptedCandidates = new Set<string>()
+  let downloadedFilePath = ''
+  let lastError: any
+
+  while (isDownloadTaskActive(task.id)) {
+    let resolved: ResolvedMusicUrl | undefined
+    let url: string
+    try {
+      url = await getMusicUrl({
+        musicInfo: task.musicInfo,
+        quality: task.quality,
+        isRefresh: true,
+        allowToggleSource: true,
+        allowQualityFallback: true,
+        attemptedCandidates,
+        forceWyCookie: Boolean(task.isForceCookie),
+        onResolved(result) {
+          resolved = result
+        },
+      })
+      if (!url || !resolved) throw new Error(global.i18n.t('toggle_source_failed'))
+    } catch (error: any) {
+      lastError = error
+      break
+    }
+
+    const resolvedQuality = resolved.quality
+    const resolvedSource = resolved.musicInfo.source
+    const filePath = getDownloadFilePath(task.filePath, resolvedQuality)
+    let lastWritten = 0
+    let lastTime = Date.now()
+
+    downloadActions.updateTask(task.id, {
+      filePath,
+      resolvedQuality,
+      resolvedSource,
+      progress: { percent: 0, speed: '', downloaded: 0, total: 0 },
+    })
+
+    try {
+      const downloadTask = RNFetchBlob.config({
+        path: filePath,
+        fileCache: true,
+      }).fetch('GET', url, getResolvedDownloadHeaders(resolvedSource))
+
+      currentDownloadTask = downloadTask
+      currentDownloadTaskId = task.id
+      downloadTask.progress({ interval: 500 }, (written, total) => {
+        if (!isDownloadTaskActive(task.id)) return
+        const now = Date.now()
+        const deltaTime = now - lastTime
+        if (deltaTime === 0) return
+
+        const deltaBytes = written - lastWritten
+        const speed = deltaBytes / (deltaTime / 1000)
+        lastWritten = written
+        lastTime = now
+        downloadActions.updateTask(task.id, {
+          progress: {
+            percent: total > 0 ? written / total : 0,
+            downloaded: written,
+            total,
+            speed: `${sizeFormate(speed)}/s`,
+          },
+        })
+      })
+
+      const response = await downloadTask
+      currentDownloadTask = null
+      currentDownloadTaskId = null
+      if (!isDownloadTaskActive(task.id)) return
+
+      const status = Number(response.info().status ?? 0)
+      if (status && (status < 200 || status >= 400)) {
+        throw new Error(`HTTP ${status}`)
+      }
+
+      const fileSize = await getDownloadedFileSize(filePath)
+      if (fileSize <= 0) throw new Error('Downloaded file is empty')
+
+      downloadedFilePath = filePath
+      break
+    } catch (error: any) {
+      currentDownloadTask = null
+      currentDownloadTaskId = null
+      lastError = error
+      await removeFileQuietly(filePath)
+      if (!isDownloadTaskActive(task.id)) return
+      console.log(
+        `[Download Manager] ${resolvedSource}_${resolved.musicInfo.id}_${resolvedQuality} failed:`,
+        error
+      )
+    }
+  }
+
+  if (!isDownloadTaskActive(task.id)) return
+  if (!downloadedFilePath) {
+    throw lastError ?? new Error(global.i18n.t('toggle_source_failed'))
+  }
+
+  console.log('下载完成:', task.fileName)
+  await handleMetadata(task, downloadedFilePath)
+  try {
+    await RNFetchBlob.fs.scanFile([{ path: downloadedFilePath }])
+    console.log(`[Download Manager] Media scan requested for: ${downloadedFilePath}`)
+  } catch (scanError) {
+    console.error(
+      `[Download Manager] Failed to request media scan for ${downloadedFilePath}:`,
+      scanError
+    )
+  }
+
+  if (!isDownloadTaskActive(task.id)) return
+  downloadActions.updateTask(task.id, {
+    status: 'completed',
+    filePath: downloadedFilePath,
+    progress: { ...task.progress, percent: 1 },
+  })
+  if (!task.isForceCookie) toast(`${task.fileName} 下载完成!`, 'short')
+}
+
 const processQueue = async () => {
   if (isProcessing || taskQueue.length === 0) return;
   isProcessing = true;
@@ -76,212 +187,17 @@ const processQueue = async () => {
   }
 
   try {
-    await startDownloadWithRetry(task);
+    await startDownloadWithUnifiedRetry(task);
   } catch (error: any) {
-    downloadActions.updateTask(task.id, { status: 'error', errorMsg: error.message });
+    if (isDownloadTaskActive(task.id)) {
+      downloadActions.updateTask(task.id, { status: 'error', errorMsg: error.message });
+    }
   } finally {
     isProcessing = false;
     processQueue();
   }
 };
 
-const startDownload = async (task: DownloadTask) => {
-  downloadActions.updateTask(task.id, { status: 'downloading' });
-
-  let url: string;
-  if (task.isForceCookie && task.musicInfo.source === 'wy') {
-    const highQualityLevels: LX.Quality[] = ['flac', 'hires', 'master', 'atmos', 'atmos_plus'];
-    console.log(`[Batch Download] Forcing cookie for ${task.musicInfo.name}`);
-    try {
-      const result = await wySdk.cookie.getMusicUrl(task.musicInfo, task.quality).promise;
-      if (!result.url) throw new Error('Cookie 未能获取到URL');
-      if (result.level === 'exhigh' && highQualityLevels.includes(task.quality)) {
-        throw new Error(`请求的音质 ${task.quality} 不可用`);
-      }
-      url = result.url;
-    } catch (error: any) {
-      toast(`${task.musicInfo.name} 下载失败: ${error.message}`, 'short');
-      removeTask(task.id);
-      return;
-    }
-  } else {
-    url = await getMusicUrl({
-      musicInfo: task.musicInfo,
-      quality: task.quality,
-      isRefresh: true,
-      allowToggleSource: task.musicInfo.source != 'tx',
-    });
-  }
-  if (!url) throw new Error('未能获取到下载链接')
-
-  await requestStoragePermission()
-
-  if (!task.isForceCookie) {
-    toast(`${task.fileName} 正在下载...`, 'short');
-  }
-  let lastWritten = 0;
-  let lastTime = Date.now();
-  try {
-    const downloadTask = RNFetchBlob.config({
-      path: task.filePath,
-      fileCache: true,
-    }).fetch('GET', url, getDownloadHeaders(task));
-
-    currentDownloadTask = downloadTask;
-    downloadTask.progress({ interval: 500 }, (written, total) => {
-      const now = Date.now();
-      const deltaTime = now - lastTime;
-      if (deltaTime === 0) return;
-
-      const deltaBytes = written - lastWritten;
-      const speed = deltaBytes / (deltaTime / 1000);
-
-      lastWritten = written;
-      lastTime = now;
-      const percent = total > 0 ? written / total : 0;
-      downloadActions.updateTask(task.id, {
-        progress: {
-          ...task.progress,
-          percent,
-          downloaded: written,
-          total,
-          speed: `${sizeFormate(speed)}/s`,
-        },
-      });
-    });
-
-    await downloadTask;
-    console.log('下载完成:', task.fileName);
-    await handleMetadata(task, task.filePath);
-    try {
-      await RNFetchBlob.fs.scanFile([{ path: task.filePath }]);
-      console.log(`[Download Manager] Media scan requested for: ${task.filePath}`);
-    } catch (scanError) {
-      console.error(`[Download Manager] Failed to request media scan for ${task.filePath}:`, scanError);
-    }
-    downloadActions.updateTask(task.id, { status: 'completed', progress: { ...task.progress, percent: 1 } });
-
-    if (!task.isForceCookie) {
-      toast(`${task.fileName} 下载完成!`, 'short');
-    }
-  } finally {
-    currentDownloadTask = null;
-  }
-};
-
-const startDownloadWithRetry = async (task: DownloadTask) => {
-  downloadActions.updateTask(task.id, { status: 'downloading' });
-  await requestStoragePermission()
-
-  if (!task.isForceCookie) {
-    toast(`${task.fileName} 正在下载...`, 'short');
-  }
-
-  const qualityCandidates = task.isForceCookie
-    ? [task.quality]
-    : getDownloadQualityCandidates(task.musicInfo, task.quality)
-  const highQualityLevels: LX.Quality[] = ['flac', 'hires', 'master', 'atmos', 'atmos_plus']
-  let downloadedFilePath = ''
-  let lastError: any
-
-  for (const quality of qualityCandidates) {
-    const filePath = getDownloadFilePath(task.filePath, quality)
-    let lastWritten = 0
-    let lastTime = Date.now()
-
-    try {
-      let url: string
-      if (task.isForceCookie && task.musicInfo.source === 'wy') {
-        console.log(`[Batch Download] Forcing cookie for ${task.musicInfo.name}`)
-        const result = await wySdk.cookie.getMusicUrl(task.musicInfo, quality).promise
-        if (!result.url) throw new Error('Cookie 未能获取到URL')
-        if (result.level === 'exhigh' && highQualityLevels.includes(quality)) {
-          throw new Error(`请求的音质 ${quality} 不可用`)
-        }
-        url = result.url
-      } else {
-        url = await getMusicUrl({
-          musicInfo: task.musicInfo,
-          quality,
-          isRefresh: true,
-          allowToggleSource: task.musicInfo.source != 'tx',
-        })
-      }
-      if (!url) throw new Error('未能获取到下载链接')
-
-      if (filePath != task.filePath) downloadActions.updateTask(task.id, { filePath })
-      const downloadTask = RNFetchBlob.config({
-        path: filePath,
-        fileCache: true,
-      }).fetch('GET', url, getDownloadHeaders(task))
-
-      currentDownloadTask = downloadTask
-      downloadTask.progress({ interval: 500 }, (written, total) => {
-        const now = Date.now()
-        const deltaTime = now - lastTime
-        if (deltaTime === 0) return
-
-        const deltaBytes = written - lastWritten
-        const speed = deltaBytes / (deltaTime / 1000)
-
-        lastWritten = written
-        lastTime = now
-        const percent = total > 0 ? written / total : 0
-        downloadActions.updateTask(task.id, {
-          progress: {
-            ...task.progress,
-            percent,
-            downloaded: written,
-            total,
-            speed: `${sizeFormate(speed)}/s`,
-          },
-        })
-      })
-
-      await downloadTask
-      currentDownloadTask = null
-
-      const fileSize = await getDownloadedFileSize(filePath)
-      if (fileSize <= 0) throw new Error('下载文件为空')
-
-      downloadedFilePath = filePath
-      break
-    } catch (error: any) {
-      currentDownloadTask = null
-      lastError = error
-      await removeFileQuietly(filePath)
-
-      if (task.isForceCookie && task.musicInfo.source === 'wy') {
-        toast(`${task.musicInfo.name} 下载失败: ${error.message}`, 'short')
-        removeTask(task.id)
-        return
-      }
-
-      if (task.musicInfo.source != 'tx') throw error
-      console.log(`[Download Manager] QQ ${quality} download failed:`, error)
-    }
-  }
-
-  if (!downloadedFilePath) throw lastError ?? new Error('未能获取到下载链接')
-
-  console.log('下载完成:', task.fileName);
-  await handleMetadata(task, downloadedFilePath);
-  try {
-    await RNFetchBlob.fs.scanFile([{ path: downloadedFilePath }]);
-    console.log(`[Download Manager] Media scan requested for: ${downloadedFilePath}`);
-  } catch (scanError) {
-    console.error(`[Download Manager] Failed to request media scan for ${downloadedFilePath}:`, scanError);
-  }
-  downloadActions.updateTask(task.id, {
-    status: 'completed',
-    filePath: downloadedFilePath,
-    progress: { ...task.progress, percent: 1 },
-  });
-
-  if (!task.isForceCookie) {
-    toast(`${task.fileName} 下载完成!`, 'short');
-  }
-};
 
 const handleMetadata = async (task: DownloadTask, filePath: string) => {
   console.log('开始处理元数据:', filePath);
@@ -308,7 +224,10 @@ const handleMetadata = async (task: DownloadTask, filePath: string) => {
   // 写入封面
   if (settingState.setting['download.writePicture']) {
     try {
-      const picUrl = await getPicUrl({ musicInfo: task.musicInfo });
+      const picUrl = await getPicUrl({
+        musicInfo: task.musicInfo as LX.Music.MusicInfoOnline,
+        isRefresh: false,
+      });
       const extension = getFileExtensionFromUrl(picUrl)
       const picPath = `${downloadDir}/temp.${extension}`
       await RNFetchBlob.config({ path: picPath }).fetch('GET', picUrl);
@@ -378,7 +297,10 @@ export const retryMetadata = async (taskId: string) => {
   // 重试写入封面
   if (metadataStatus.cover === 'fail' && settingState.setting['download.writePicture']) {
     try {
-      const picUrl = await getPicUrl({ musicInfo: task.musicInfo as LX.Music.MusicInfoOnline });
+      const picUrl = await getPicUrl({
+        musicInfo: task.musicInfo as LX.Music.MusicInfoOnline,
+        isRefresh: false,
+      });
       const extension = getFileExtensionFromUrl(picUrl);
       const picPath = `${RNFetchBlob.fs.dirs.CacheDir}/lx_temp_pic_${task.id}.${extension}`;
 
@@ -434,7 +356,7 @@ export const retryTask = (taskId: string) => {
     removeTask(task.id);
     // 延迟一下，确保状态更新
     setTimeout(() => {
-      addTask(task.musicInfo, task.quality);
+      addTask(task.musicInfo, task.quality, Boolean(task.isForceCookie));
     }, 200);
   }
   // 如果文件已存在，但元信息失败，则只重试元信息
@@ -508,7 +430,7 @@ export const addTask = (musicInfo: LX.Music.MusicInfo, quality: LX.Quality, isFo
 
 export const removeTask = (id: string) => {
   const taskToRemove = downloadState.tasks.find(t => t.id === id);
-  if (currentDownloadTask && taskToRemove && taskToRemove.status === 'downloading') {
+  if (currentDownloadTask && currentDownloadTaskId === id && taskToRemove) {
     currentDownloadTask.cancel(async () => {
       try {
         console.log(taskToRemove)
@@ -520,6 +442,7 @@ export const removeTask = (id: string) => {
         console.error(`[Download Manager] Failed to delete partial file on remove:`, error);
       }
       currentDownloadTask = null;
+      currentDownloadTaskId = null;
     })
   } else if (taskToRemove && taskToRemove.status !== 'completed' && taskToRemove.filePath) {
     void unlink(taskToRemove.filePath).catch(() => {});
@@ -529,8 +452,7 @@ export const removeTask = (id: string) => {
   if (taskIndex > -1) taskQueue.splice(taskIndex, 1);
   // 从store中移除
   downloadActions.removeTask(id);
-  isProcessing = false;
-  processQueue();
+  if (!isProcessing) processQueue();
 };
 
 

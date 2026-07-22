@@ -1,6 +1,6 @@
 const defaultSetting: LX.AppSetting = {
   version: '2.0',
-  'version.autoCheckUpdate': true,
+  'version.autoCheckUpdate': false,
   'common.isAutoTheme': false,
   'common.langId': null,
   'common.apiSource': '',
@@ -33,6 +33,7 @@ const defaultSetting: LX.AppSetting = {
   'player.startupPushPlayDetailScreen': false,
   'player.togglePlayMethod': 'listLoop',
   'player.playQuality': '320k',
+  'player.urlFallbackStrategy': 'source-first',
   'player.isSavePlayTime': false,
   'player.volume': 1,
   'player.playbackRate': 1,

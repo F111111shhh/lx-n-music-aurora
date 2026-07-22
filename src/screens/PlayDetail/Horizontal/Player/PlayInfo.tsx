@@ -8,6 +8,8 @@ import { useTheme } from '@/store/theme/hook'
 import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
 import { useBufferProgress } from '@/plugins/player'
+import CurrentQuality from '@/screens/PlayDetail/components/CurrentQuality'
+import { useStatusText } from '@/store/player/hook'
 
 // const FONT_SIZE = 13
 
@@ -26,12 +28,13 @@ export default () => {
   const theme = useTheme()
   const { maxPlayTimeStr, nowPlayTimeStr, progress, maxPlayTime } = useProgress()
   const buffered = useBufferProgress()
+  const statusText = useStatusText()
   // console.log('render playInfo')
 
   return (
     <View style={styles.container}>
       <View style={styles.status}>
-        <Status />
+        {statusText ? <Status /> : <CurrentQuality />}
       </View>
       <View style={{ flexGrow: 0, flexShrink: 0, flexDirection: 'row' }}>
         <PlayTimeCurrent timeStr={nowPlayTimeStr} />
@@ -73,6 +76,7 @@ const styles = createStyle({
     flexGrow: 1,
     flexShrink: 1,
     paddingRight: 5,
+    alignItems: 'center',
   },
 })
 // const styles = createStyle({
