@@ -48,6 +48,18 @@
 - Never commit release keystores, `android/keystore.properties`, APKs, or other
   generated signing material.
 
+## Release Conventions
+
+- GitHub Release titles, bodies, and their source files under
+  `.github/release-notes/` use Simplified Chinese only unless the user
+  explicitly asks for another language. Update the local source first, then
+  use it unchanged when creating or editing the corresponding GitHub Release.
+  This does not change the bilingual README or `CHANGELOG-AURORA.md` policy.
+- Keep README release information version-neutral. Preserve the package id,
+  display name, and upstream details, then link to `CHANGELOG-AURORA.md` and
+  GitHub Releases. Put a specific version or tag only in package metadata, the
+  Aurora changelog, and its matching release note.
+
 ## Code Map
 
 - `src/core/init/player/`: player lifecycle, playback state, preload, and lyric
