@@ -12,8 +12,8 @@ improvements for playback, downloads, source fallback, and lyrics.
 
 ## Release Information
 
-- Current version: <code>1.8.85-aurora.2</code>
-- Release tag: <code>v1.8.85-aurora.2</code>
+- Current version: <code>1.8.85-aurora.3</code>
+- Release tag: <code>v1.8.85-aurora.3</code>
 - Android package id: <code>com.lxnetease.music.mobile</code>
 - Android display name: <code>LX-N Music Aurora</code>
 - Upstream: <code>souvenp/lx-netease-music-mobile</code>
