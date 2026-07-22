@@ -563,6 +563,7 @@ const styles = createStyle({
   line: {
     paddingTop: 10,
     paddingBottom: 10,
+    paddingHorizontal: '5%',
   },
   linePressed: {
     opacity: 0.7,
