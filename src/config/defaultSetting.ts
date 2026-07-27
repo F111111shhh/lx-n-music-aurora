@@ -1,6 +1,6 @@
 const defaultSetting: LX.AppSetting = {
   version: '2.0',
-  'version.autoCheckUpdate': false,
+  'version.autoCheckUpdate': true,
   'common.isAutoTheme': false,
   'common.langId': null,
   'common.apiSource': '',

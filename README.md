@@ -26,7 +26,7 @@ LX-N Music Aurora 是基于
 - 改进 QQ 音乐源搜索的重试与结果校验，并对 QQ、酷我等音源的音质别名和候选链接做兼容处理，减少不必要的切源、过期 URL 和空文件下载。
 - 播放详情进度条下方显示当前实际音质；点击可查看并切换这首歌可用的音质。
 - 歌词页包含当前句高亮、缩放、点击预览和滚动同步方面的 Aurora 改进。
-- 已关闭应用内更新检测；后续版本通过 [GitHub Releases](https://github.com/F111111shhh/lx-n-music-aurora/releases) 发布。
+- 已恢复应用内更新检测；“软件更新”仅检查并下载本 Aurora 项目的 [GitHub Releases](https://github.com/F111111shhh/lx-n-music-aurora/releases)，上游 LX-N Music 和其他同包名版本不属于此更新通道。
 - 不移除原有音源、列表、下载、同步、设置或其它常用功能。
 
 ## 安装
@@ -34,9 +34,9 @@ LX-N Music Aurora 是基于
 请从 [GitHub Releases](https://github.com/F111111shhh/lx-n-music-aurora/releases)
 下载通用 APK。
 
-本版本使用新的私有 Release 签名。若设备安装的是旧 Aurora、原版 LX-N Music 或任何使用
-不同签名的同包名版本，Android 不能直接覆盖安装。首次迁移前请导出重要设置、歌单和数据，
-然后卸载旧版并安装本版本。之后的 Aurora Release 会继续使用同一把签名密钥，可正常覆盖升级。
+Aurora 使用独立的 Release 签名。若设备已安装的原版 LX-N Music、旧 Aurora 或其他同包名版本使用不同
+签名，Android 不能直接覆盖安装。首次迁移前请导出重要设置、歌单和数据，然后卸载旧版并安装
+本版本。使用同一 Aurora Release 签名发布的后续版本可正常覆盖升级。
 
 ## 说明
 

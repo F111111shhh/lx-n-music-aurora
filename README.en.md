@@ -35,8 +35,9 @@ improvements for playback, downloads, source fallback, and lyrics.
   and select an available quality for the current track.
 - Includes Aurora lyric improvements for active-line highlighting, scaling,
   tap preview, and scroll synchronization.
-- In-app update checks are disabled; future versions are published through
-  [GitHub Releases](https://github.com/F111111shhh/lx-n-music-aurora/releases).
+- In-app update checks are enabled. The Update screen checks and downloads only
+  this Aurora project's [GitHub Releases](https://github.com/F111111shhh/lx-n-music-aurora/releases);
+  upstream LX-N Music and other apps sharing the package name are outside this update channel.
 - Does not intentionally remove existing sources, playlists, downloads, sync,
   settings, or other common LX-N Music features.
 
@@ -45,11 +46,11 @@ improvements for playback, downloads, source fallback, and lyrics.
 Download the universal APK from
 [GitHub Releases](https://github.com/F111111shhh/lx-n-music-aurora/releases).
 
-This release uses a new private Release signing key. Android cannot install it
-over an older Aurora build, stock LX-N Music build, or another same-package
-build signed with a different key. Export important settings, playlists, and
-data before uninstalling the older build for this one-time migration. Future
-Aurora releases will use the same key and can update in place.
+Aurora uses an independent Release signing key. Android cannot install it over
+stock LX-N Music, an older Aurora build, or another same-package build when the
+installed build uses a different key. Export important settings, playlists, and data before
+uninstalling the older build for this one-time migration. Later Aurora releases
+signed with the same Aurora Release key can update in place.
 
 ## Notice
 

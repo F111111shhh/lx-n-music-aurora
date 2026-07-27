@@ -7,12 +7,19 @@ import { createStyle, openUrl } from '@/utils/tools'
 import { useTheme } from '@/store/theme/hook'
 import { useI18n } from '@/lang'
 import Text from '@/components/common/Text'
+import { AURORA_GITHUB_URL, AURORA_RELEASES_URL } from '@/config/constant'
 
 export default memo(() => {
   const theme = useTheme()
   const t = useI18n()
-  const openHomePage = () => {
+  const openUpstreamHomePage = () => {
     void openUrl('https://github.com/souvenp/lx-netease-music-mobile#readme')
+  }
+  const openAuroraHomePage = () => {
+    void openUrl(AURORA_GITHUB_URL)
+  }
+  const openAuroraReleases = () => {
+    void openUrl(AURORA_RELEASES_URL)
   }
 
   const textLinkStyle = {
@@ -24,10 +31,25 @@ export default memo(() => {
   return (
     <Section title={t('setting_about')}>
       <View style={styles.part}>
-        <Text style={styles.text}>本软件(LX-Netease Music简称LX-N Music)完全免费，代码已开源。开源地址：</Text>
-        <TouchableOpacity onPress={openHomePage}>
+        <Text style={styles.text}>
+          本软件(LX-Netease Music简称LX-N Music)完全免费，代码已开源。开源地址：
+        </Text>
+        <TouchableOpacity onPress={openUpstreamHomePage}>
           <Text style={textLinkStyle}>https://github.com/souvenp/lx-netease-music-mobile</Text>
         </TouchableOpacity>
+      </View>
+      <View style={styles.part}>
+        <Text style={styles.text}>本版本为 Aurora 维护分支，源码与正式发布地址：</Text>
+        <TouchableOpacity onPress={openAuroraHomePage}>
+          <Text style={textLinkStyle}>{AURORA_GITHUB_URL}</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.part}>
+        <Text style={styles.text}>应用内“软件更新”仅检查和下载 Aurora GitHub Releases：</Text>
+        <TouchableOpacity onPress={openAuroraReleases}>
+          <Text style={textLinkStyle}>{AURORA_RELEASES_URL}</Text>
+        </TouchableOpacity>
+        <Text style={styles.text}>上游 LX-N Music、原版项目及其他同包名版本不属于此更新通道。</Text>
       </View>
       <View style={styles.part}>
         <Text style={styles.text}>
@@ -61,6 +83,15 @@ export default memo(() => {
           」，则表明你手机上的旧版本或者将要安装的新版本中
           <Text style={styles.boldText}>有一方</Text>是「
           <Text style={styles.boldText}>第三方修改版</Text>」。
+        </Text>
+      </View>
+      <View style={styles.part}>
+        <Text style={styles.text}>
+          上述签名说明适用于原版 LX-N Music 的发布链路。Aurora 使用独立的 Release
+          签名，因此首次从使用不同签名的原版 LX-N Music、旧 Aurora
+          或其他同包名版本迁移时出现该提示并不表示 Aurora
+          安装包被篡改；请先导出重要设置、歌单和数据，卸载旧版后再安装。使用同一 Aurora Release
+          签名发布的后续版本可正常覆盖升级。
         </Text>
       </View>
     </Section>

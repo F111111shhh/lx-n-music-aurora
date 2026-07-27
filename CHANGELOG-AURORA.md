@@ -1,5 +1,22 @@
 # LX-N Music Aurora Changelog
 
+## 1.8.85-aurora.4 - 2026-07-27
+
+### 中文
+
+- 恢复应用内更新检查与安装包下载，版本信息和通用 APK 均以 Aurora GitHub Releases 为准。
+- 在“软件更新”页明确 Aurora 更新来源，并提供 Releases 入口。
+- 在“关于 LX-N Music”页保留上游说明，同时补充 Aurora 发布链、独立签名和首次迁移说明。
+
+### English
+
+- Restores in-app update checks and APK downloads, using Aurora GitHub Releases
+  for both version metadata and the universal APK.
+- Documents the Aurora update source and adds a Releases entry point in the
+  Update screen.
+- Retains the upstream About copy while clarifying Aurora releases, its
+  independent signing key, and first-time migration.
+
 ## 1.8.85-aurora.3 - 2026-07-22
 
 ### 中文

@@ -107,6 +107,11 @@ export const storageDataPrefixOld = {
 
 export const APP_PROVIDER_NAME = 'com.lxnetease.music.mobile.provider'
 
+export const AURORA_GITHUB_REPOSITORY = 'F111111shhh/lx-n-music-aurora'
+export const AURORA_GITHUB_URL = `https://github.com/${AURORA_GITHUB_REPOSITORY}`
+export const AURORA_RELEASE_BRANCH = 'aurora'
+export const AURORA_RELEASES_URL = `${AURORA_GITHUB_URL}/releases`
+
 export const NAV_MENUS = [
   { id: 'nav_search', icon: 'search-2' },
   { id: 'nav_play_history', icon: 'music_time' },

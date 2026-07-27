@@ -563,6 +563,7 @@
   "version_title_update": "🚀 軟體更新 🚀",
   "version_btn_check_update": "檢查更新",
   "setting_version_auto_check_update": "啟動時自動檢查更新",
+  "setting_version_aurora_release": "Aurora 更新僅會從本維護分支的 GitHub Releases 檢查及下載。上游 LX-N Music 與其他同包名版本不屬於此更新管道。",
   "128k": "128K",
   "320k": "320K",
   "flac": "FLAC",

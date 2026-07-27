@@ -1,17 +1,18 @@
 import { memo, useState, useEffect } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import Section from '../components/Section'
 import SubTitle from '../components/SubTitle'
 import Button from '../components/Button'
 import { sizeFormate } from '@/utils'
-import { toast } from '@/utils/tools'
+import { openUrl } from '@/utils/tools'
 
 import { useI18n } from '@/lang'
 import { useVersionDownloadProgressUpdated, useVersionInfo } from '@/store/version/hook'
 import Text from '@/components/common/Text'
 import { checkUpdate, showModal } from '@/core/version'
-import IsAutoCheckUpdate from "@/screens/Home/Views/Setting/settings/Version/IsAutoCheckUpdate.tsx";
+import { AURORA_RELEASES_URL } from '@/config/constant'
+import IsAutoCheckUpdate from './Version/IsAutoCheckUpdate'
 
 const currentVer = process.versions.app
 export default memo(() => {
@@ -22,12 +23,13 @@ export default memo(() => {
   const [tip, setTip] = useState('')
   const progress = useVersionDownloadProgressUpdated()
   const handleOpenVersionModal = () => {
-    // setVersionInfo({ showModal: true })
     showModal()
   }
   const handleCheckUpdate = () => {
-    void checkUpdate(true)
-    toast('更新检测已关闭', 'short')
+    void checkUpdate()
+  }
+  const handleOpenAuroraReleases = () => {
+    void openUrl(AURORA_RELEASES_URL)
   }
 
   useEffect(() => {
@@ -92,6 +94,13 @@ export default memo(() => {
           <Button onPress={handleCheckUpdate}>{t('version_btn_check_update')}</Button>
         </View>
 
+        <TouchableOpacity style={styles.releaseInfo} onPress={handleOpenAuroraReleases}>
+          <Text size={14}>{t('setting_version_aurora_release')}</Text>
+          <Text size={14} style={styles.releaseLink}>
+            {AURORA_RELEASES_URL}
+          </Text>
+        </TouchableOpacity>
+
         <IsAutoCheckUpdate />
       </SubTitle>
     </Section>
@@ -104,5 +113,11 @@ const styles = StyleSheet.create({
   },
   btn: {
     flexDirection: 'row',
+  },
+  releaseInfo: {
+    marginTop: 12,
+  },
+  releaseLink: {
+    textDecorationLine: 'underline',
   },
 })

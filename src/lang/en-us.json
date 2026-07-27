@@ -592,6 +592,7 @@
   "version_title_update": "🚀 App update 🚀",
   "version_btn_check_update": "Check for Updates",
   "setting_version_auto_check_update": "Automatically check for updates on startup",
+  "setting_version_aurora_release": "Aurora updates are checked and downloaded only from this branch's GitHub Releases. Upstream LX-N Music and other apps sharing the package name are not part of this update channel.",
   "128k": "128K",
   "320k": "320K",
   "flac": "FLAC",
