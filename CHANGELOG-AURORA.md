@@ -1,5 +1,21 @@
 # LX-N Music Aurora Changelog
 
+## 1.8.85-aurora.5 - 2026-07-27
+
+### 中文
+
+- 修复更新清单校验：仅接受带 Aurora 通道标识且版本号为
+  `*-aurora.N` 的版本，避免原版 LX-N Music 或过期镜像缓存被误判为更新。
+- 将 Aurora 更新清单、Release 标签和通用 APK 作为同一发布单元，确保应用内下载目标存在且与当前签名一致。
+
+### English
+
+- Validates update metadata as Aurora-only: it must carry the Aurora channel
+  marker and a `*-aurora.N` version, preventing upstream LX-N Music metadata
+  or stale mirror data from being reported as an update.
+- Treats the Aurora manifest, Release tag, and universal APK as one release
+  unit so the in-app download target exists and uses the current signing key.
+
 ## 1.8.85-aurora.4 - 2026-07-27
 
 ### 中文

@@ -7,9 +7,22 @@ import {
   AURORA_GITHUB_REPOSITORY,
   AURORA_RELEASE_BRANCH,
   AURORA_RELEASES_URL,
+  AURORA_UPDATE_CHANNEL,
 } from '@/config/constant'
 
 const AURORA_RELEASE_APK_ABI = 'universal'
+const AURORA_VERSION_RXP = /^\d+\.\d+\.\d+-aurora\.\d+$/
+
+const assertAuroraVersionInfo = (info) => {
+  if (
+    info?.channel !== AURORA_UPDATE_CHANNEL ||
+    typeof info.version != 'string' ||
+    !AURORA_VERSION_RXP.test(info.version)
+  ) {
+    throw new Error('Invalid Aurora update metadata')
+  }
+  return info
+}
 
 const address = [
   [
@@ -52,18 +65,13 @@ const request = async (url, retryNum = 0) => {
 }
 
 const getDirectInfo = async (url) => {
-  return request(url).then((info) => {
-    if (info.version == null) throw new Error('failed')
-    return info
-  })
+  return request(url).then(assertAuroraVersionInfo)
 }
 
 const getNpmPkgInfo = async (url) => {
   return request(url).then((json) => {
     if (!json.versionInfo) throw new Error('failed')
-    const info = JSON.parse(json.versionInfo)
-    if (info.version == null) throw new Error('failed')
-    return info
+    return assertAuroraVersionInfo(JSON.parse(json.versionInfo))
   })
 }
 
@@ -91,6 +99,9 @@ const noop = (total, download) => {}
 let apkSavePath
 
 export const downloadNewVersion = async (version, onDownload = noop) => {
+  if (typeof version != 'string' || !AURORA_VERSION_RXP.test(version)) {
+    throw new Error('Invalid Aurora update version')
+  }
   const url = `${AURORA_RELEASES_URL}/download/v${version}/${name}-v${version}-${AURORA_RELEASE_APK_ABI}.apk`
   let savePath = temporaryDirectoryPath + '/lx-netease-music-mobile.apk'
 

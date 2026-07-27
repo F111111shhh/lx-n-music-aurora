@@ -1,7 +1,12 @@
 {
-  "version": "1.8.85-aurora.4",
-  "desc": "恢复 Aurora GitHub Releases 的应用内更新检测与通用 APK 下载。",
+  "channel": "aurora",
+  "version": "1.8.85-aurora.5",
+  "desc": "修复更新清单校验，仅接受 Aurora GitHub Releases 的 Aurora 版本，避免原版或旧缓存被误报为更新。",
   "history": [
+    {
+      "version": "1.8.85-aurora.4",
+      "desc": "恢复 Aurora GitHub Releases 的应用内更新检测与通用 APK 下载。"
+    },
     {
       "version": "1.8.85-aurora.3",
       "desc": "修复播放详情歌词在部分字号下高亮行缩放后被左右可见边界截断的问题。"
