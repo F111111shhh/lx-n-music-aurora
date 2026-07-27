@@ -1,7 +1,7 @@
 {
   "name": "lx-n-music-aurora",
-  "version": "1.8.85-aurora.5",
-  "versionCode": 74,
+  "version": "1.8.85-aurora.6",
+  "versionCode": 75,
   "private": true,
   "scripts": {
     "dev": "react-native run-android --active-arch-only",

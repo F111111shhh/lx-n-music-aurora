@@ -1,5 +1,20 @@
 # LX-N Music Aurora Changelog
 
+## 1.8.85-aurora.6 - 2026-07-27
+
+### 中文
+
+- 更新检查优先使用 Aurora GitHub Releases API，并核验 Release tag 与 universal APK 资产，避免原始 GitHub 文件或分支 CDN 缓存导致版本信息错误。
+- 保留带 Aurora 通道标识的版本清单作为后备来源；不符合 Aurora 格式的元数据仍会被拒绝。
+
+### English
+
+- Makes the Aurora GitHub Releases API the primary update source and verifies
+  both the Release tag and universal APK asset, avoiding incorrect metadata
+  from raw GitHub files or branch-CDN caches.
+- Retains the channel-marked version manifest as a fallback; metadata outside
+  the Aurora format remains rejected.
+
 ## 1.8.85-aurora.5 - 2026-07-27
 
 ### 中文

@@ -6,12 +6,16 @@ import {
   APP_PROVIDER_NAME,
   AURORA_GITHUB_REPOSITORY,
   AURORA_RELEASE_BRANCH,
+  AURORA_RELEASES_API_URL,
   AURORA_RELEASES_URL,
   AURORA_UPDATE_CHANNEL,
 } from '@/config/constant'
 
 const AURORA_RELEASE_APK_ABI = 'universal'
 const AURORA_VERSION_RXP = /^\d+\.\d+\.\d+-aurora\.\d+$/
+const AURORA_RELEASE_TAG_RXP = /^v(\d+\.\d+\.\d+-aurora\.\d+)$/
+
+const getUniversalApkName = (version) => `${name}-v${version}-${AURORA_RELEASE_APK_ABI}.apk`
 
 const assertAuroraVersionInfo = (info) => {
   if (
@@ -25,6 +29,7 @@ const assertAuroraVersionInfo = (info) => {
 }
 
 const address = [
+  [AURORA_RELEASES_API_URL, 'github_release'],
   [
     `https://raw.githubusercontent.com/${AURORA_GITHUB_REPOSITORY}/${AURORA_RELEASE_BRANCH}/publish/version.json`,
     'direct',
@@ -75,10 +80,35 @@ const getNpmPkgInfo = async (url) => {
   })
 }
 
+const getGithubReleaseInfo = async (url) => {
+  return request(url).then((release) => {
+    const tagMatch = AURORA_RELEASE_TAG_RXP.exec(release?.tag_name ?? '')
+    const version = tagMatch?.[1]
+    if (
+      !version ||
+      release.draft ||
+      release.prerelease ||
+      !Array.isArray(release.assets) ||
+      !release.assets.some((asset) => asset?.name === getUniversalApkName(version))
+    ) {
+      throw new Error('Invalid Aurora release')
+    }
+    return assertAuroraVersionInfo({
+      channel: AURORA_UPDATE_CHANNEL,
+      version,
+      desc: typeof release.body == 'string' ? release.body : '',
+      history: [],
+    })
+  })
+}
+
 export const getVersionInfo = async (index = 0) => {
   const [url, source] = address[index]
   let promise
   switch (source) {
+    case 'github_release':
+      promise = getGithubReleaseInfo(url)
+      break
     case 'direct':
       promise = getDirectInfo(url)
       break
@@ -102,7 +132,7 @@ export const downloadNewVersion = async (version, onDownload = noop) => {
   if (typeof version != 'string' || !AURORA_VERSION_RXP.test(version)) {
     throw new Error('Invalid Aurora update version')
   }
-  const url = `${AURORA_RELEASES_URL}/download/v${version}/${name}-v${version}-${AURORA_RELEASE_APK_ABI}.apk`
+  const url = `${AURORA_RELEASES_URL}/download/v${version}/${getUniversalApkName(version)}`
   let savePath = temporaryDirectoryPath + '/lx-netease-music-mobile.apk'
 
   if (downloadJobId) stopDownload(downloadJobId)
