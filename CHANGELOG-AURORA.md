@@ -1,5 +1,24 @@
 # LX-N Music Aurora Changelog
 
+## 1.8.85-aurora.8 - 2026-07-28
+
+### 中文
+
+- 修复 QQ 音乐部分公开歌单无法加载的问题：详情接口在返回成功状态时仍可能不给出歌单数据，现已改用 QQ 音乐当前网页使用的歌单详情接口。
+- 修正 QQ 歌单详情的分页参数处理，并按 100 首歌曲获取详情后由应用本地分页展示，避免加载重试参数与页码混用。
+- 核对网易云音乐、酷狗音乐、酷我音乐和咪咕音乐的歌单详情路径，未发现与 QQ 音乐相同的缺失详情数据问题。
+
+### English
+
+- Fixes certain public QQ Music playlists failing to load when the old detail
+  endpoint returned a success status without playlist data. The app now uses
+  the playlist-detail endpoint used by QQ Music's current web client.
+- Corrects QQ playlist pagination handling and fetches up to 100 tracks for
+  local pagination, preventing the retry parameter from being confused with a
+  page number.
+- Reviewed the playlist-detail paths for NetEase Cloud Music, Kugou, Kuwo, and
+  Migu. No matching missing-detail-data issue was found.
+
 ## 1.8.85-aurora.7 - 2026-07-27
 
 ### 中文
