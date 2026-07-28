@@ -8,7 +8,7 @@ export default {
   _requestObj_hotTags: null,
   _requestObj_list: null,
   limit_list: 36,
-  limit_song: 100000,
+  limit_song: 100,
   successCode: 0,
   sortList: [
     {
@@ -67,8 +67,39 @@ export default {
       })
     )}`
   },
-  getListDetailUrl(id) {
-    return `https://c.y.qq.com/qzone/fcg-bin/fcg_ucc_getcdinfo_byids_cp.fcg?type=1&json=1&utf8=1&onlysong=0&new_format=1&disstid=${id}&loginUin=0&hostUin=0&format=json&inCharset=utf8&outCharset=utf-8&notice=0&platform=yqq.json&needNewCode=0`
+  getListDetailRequest(id, page) {
+    return httpFetch('https://u.y.qq.com/cgi-bin/musicu.fcg', {
+      method: 'post',
+      headers: {
+        Origin: 'https://y.qq.com',
+        Referer: `https://i2.y.qq.com/n3/other/pages/details/playlist.html?id=${id}`,
+      },
+      body: {
+        comm: {
+          ct: 24,
+          cv: 0,
+          format: 'json',
+          inCharset: 'utf-8',
+          outCharset: 'utf-8',
+          notice: 0,
+          platform: 'yqq.json',
+          needNewCode: 0,
+          uin: 0,
+        },
+        req_0: {
+          module: 'music.srfDissInfo.aiDissInfo',
+          method: 'uniform_get_Dissinfo',
+          param: {
+            disstid: Number(id),
+            tag: 1,
+            userinfo: 1,
+            song_begin: (page - 1) * this.limit_song,
+            song_num: this.limit_song,
+            orderlist: 1,
+          },
+        },
+      },
+    })
   },
 
   // http://nplserver.kuwo.cn/pl.svc?op=getlistinfo&pid=2849349915&pn=0&rn=100&encode=utf8&keyset=pl2012&identity=kuwo&pcmp4=1&vipver=MUSIC_9.0.5.0_W1&newver=1
@@ -207,33 +238,39 @@ export default {
     return id
   },
   // 获取歌曲列表内的音乐
-  async getListDetail(id, tryNum = 0) {
+  async getListDetail(id, page = 1, tryNum = 0) {
     if (tryNum > 2) return Promise.reject(new Error('try max num'))
 
     id = await this.getListId(id)
+    page = Math.max(1, Number(page) || 1)
 
-    const requestObj_listDetail = httpFetch(this.getListDetailUrl(id), {
-      headers: {
-        Origin: 'https://y.qq.com',
-        Referer: `https://y.qq.com/n/yqq/playsquare/${id}.html`,
-      },
-    })
+    const requestObj_listDetail = this.getListDetailRequest(id, page)
     const { body } = await requestObj_listDetail.promise
+    const detail = body?.req_0?.data
 
-    if (body.code !== this.successCode) return this.getListDetail(id, ++tryNum)
-    const cdlist = body.cdlist[0]
+    if (
+      body?.code !== this.successCode ||
+      body?.req_0?.code !== this.successCode ||
+      detail?.code !== this.successCode ||
+      !detail.dirinfo ||
+      !Array.isArray(detail.songlist)
+    ) {
+      return this.getListDetail(id, page, ++tryNum)
+    }
+
+    const { dirinfo, songlist } = detail
     return {
-      list: await this.filterListDetail(cdlist.songlist),
-      page: 1,
-      limit: cdlist.songlist.length + 1,
-      total: cdlist.songlist.length,
+      list: await this.filterListDetail(songlist),
+      page,
+      limit: this.limit_song,
+      total: dirinfo.songnum ?? detail.total_song_num ?? songlist.length,
       source: 'tx',
       info: {
-        name: cdlist.dissname,
-        img: cdlist.logo,
-        desc: decodeName(cdlist.desc).replace(/<br>/g, '\n'),
-        author: cdlist.nickname,
-        play_count: formatPlayCount(cdlist.visitnum),
+        name: dirinfo.title,
+        img: dirinfo.picurl,
+        desc: decodeName(dirinfo.desc || '').replace(/<br>/g, '\n'),
+        author: dirinfo.host_nick,
+        play_count: formatPlayCount(dirinfo.listennum),
       },
     }
   },
