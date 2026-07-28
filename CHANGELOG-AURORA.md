@@ -1,5 +1,20 @@
 # LX-N Music Aurora Changelog
 
+## 1.8.85-aurora.7 - 2026-07-27
+
+### 中文
+
+- 修复应用内更新下载流程：使用版本独立的临时文件，检查 HTTP 状态、下载长度与 GitHub Release 提供的 SHA-256 后才安装。
+- 清理旧的固定更新缓存，避免网络失败后误打开旧 APK、残缺文件或非 Aurora 安装包。
+
+### English
+
+- Fixes the in-app update download flow: it uses a version-specific temporary
+  file and installs only after HTTP status, byte length, and the GitHub Release
+  SHA-256 digest all match.
+- Clears the old fixed update cache so a failed network request cannot open a
+  stale APK, partial file, or non-Aurora package.
+
 ## 1.8.85-aurora.6 - 2026-07-27
 
 ### 中文

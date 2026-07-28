@@ -1,8 +1,12 @@
 {
   "channel": "aurora",
-  "version": "1.8.85-aurora.6",
-  "desc": "更新检查优先使用 Aurora GitHub Releases，避免原始 GitHub 文件或分支 CDN 缓存导致版本信息错误。",
+  "version": "1.8.85-aurora.7",
+  "desc": "修复应用内更新下载校验：仅安装 HTTP、文件长度和 SHA-256 均通过验证的 Aurora Release APK。",
   "history": [
+    {
+      "version": "1.8.85-aurora.6",
+      "desc": "更新检查优先使用 Aurora GitHub Releases，避免原始 GitHub 文件或分支 CDN 缓存导致版本信息错误。"
+    },
     {
       "version": "1.8.85-aurora.5",
       "desc": "修复更新清单校验，仅接受 Aurora GitHub Releases 的 Aurora 版本，避免原版或旧缓存被误报为更新。"

@@ -112,7 +112,8 @@ export const AURORA_GITHUB_URL = `https://github.com/${AURORA_GITHUB_REPOSITORY}
 export const AURORA_RELEASE_BRANCH = 'aurora'
 export const AURORA_UPDATE_CHANNEL = 'aurora'
 export const AURORA_RELEASES_URL = `${AURORA_GITHUB_URL}/releases`
-export const AURORA_RELEASES_API_URL = `https://api.github.com/repos/${AURORA_GITHUB_REPOSITORY}/releases/latest`
+export const AURORA_RELEASES_API_BASE_URL = `https://api.github.com/repos/${AURORA_GITHUB_REPOSITORY}/releases`
+export const AURORA_RELEASES_API_URL = `${AURORA_RELEASES_API_BASE_URL}/latest`
 
 export const NAV_MENUS = [
   { id: 'nav_search', icon: 'search-2' },
