@@ -1,7 +1,7 @@
 {
   "channel": "aurora",
   "version": "1.8.85-aurora.7",
-  "desc": "修复应用内更新下载校验：仅安装 HTTP、文件长度和 SHA-256 均通过验证的 Aurora Release APK。",
+  "desc": "已恢复 Aurora 应用内更新：主来源为 F111111shhh/lx-n-music-aurora 的 GitHub Releases；版本信息回退时仅使用本仓库 Aurora 清单，安装包仍从对应 Release 下载并校验 HTTP、文件长度与 SHA-256。",
   "history": [
     {
       "version": "1.8.85-aurora.6",

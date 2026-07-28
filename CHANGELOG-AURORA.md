@@ -4,12 +4,19 @@
 
 ### 中文
 
+- Aurora 已恢复应用内更新检查：更新通道以 <code>F111111shhh/lx-n-music-aurora</code> 的 GitHub Releases 为主来源，版本信息只会回退到本仓库 <code>aurora</code> 分支带 Aurora 通道标识的清单；安装包始终从对应 GitHub Release 下载并校验，不再使用原版 LX-N Music 的更新信息或分支 CDN 缓存返回的非 Aurora 版本。
 - 修复应用内更新下载流程：使用版本独立的临时文件，检查 HTTP 状态、下载长度与 GitHub Release 提供的 SHA-256 后才安装。
 - 清理旧的固定更新缓存，避免网络失败后误打开旧 APK、残缺文件或非 Aurora 安装包。
-- 已于 2026-07-28 撤回 1.8.85-aurora.5 与 1.8.85-aurora.6 的 GitHub Release、下载资产及版本标签：两个版本的更新链路可能误识别非 Aurora 更新，或在下载失败后打开旧缓存 APK。原有变更记录保留以便审计；1.8.85-aurora.6 的正式 APK 签名未失效。
+- 已于 2026-07-28 撤回 1.8.85-aurora.5 与 1.8.85-aurora.6 的 GitHub Release、下载资产及版本标签：两个版本的更新链路可能误识别非 Aurora 更新，或在下载失败后打开旧缓存 APK。原有变更记录保留以便审计；1.8.85-aurora.6 的正式 APK 签名未失效。已安装这两个版本的用户请先手动安装 <code>1.8.85-aurora.7</code>，之后可继续通过应用内更新获取后续 Aurora 版本。
 
 ### English
 
+- Confirms that Aurora in-app update checks are restored. GitHub Releases for
+  <code>F111111shhh/lx-n-music-aurora</code> are the primary update source;
+  version information can fall back only to the channel-marked manifest on the
+  same repository's <code>aurora</code> branch. The APK always comes from and
+  is verified against the matching GitHub Release; upstream LX-N Music metadata
+  and non-Aurora versions returned from branch-CDN caches are not accepted.
 - Fixes the in-app update download flow: it uses a version-specific temporary
   file and installs only after HTTP status, byte length, and the GitHub Release
   SHA-256 digest all match.
@@ -19,7 +26,9 @@
   1.8.85-aurora.5 and 1.8.85-aurora.6 on 2026-07-28. Their update paths could
   misidentify a non-Aurora update or open a stale cached APK after a failed
   download. The original changelog records remain for audit; the formal
-  1.8.85-aurora.6 APK signature was not invalid.
+  1.8.85-aurora.6 APK signature was not invalid. Users of those versions
+  should install 1.8.85-aurora.7 manually first; subsequent Aurora versions
+  can use in-app updates.
 
 ## 1.8.85-aurora.6 - 2026-07-27
 
