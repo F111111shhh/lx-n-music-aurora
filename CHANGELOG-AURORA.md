@@ -6,6 +6,7 @@
 
 - 修复应用内更新下载流程：使用版本独立的临时文件，检查 HTTP 状态、下载长度与 GitHub Release 提供的 SHA-256 后才安装。
 - 清理旧的固定更新缓存，避免网络失败后误打开旧 APK、残缺文件或非 Aurora 安装包。
+- 已于 2026-07-28 撤回 1.8.85-aurora.5 与 1.8.85-aurora.6 的 GitHub Release、下载资产及版本标签：两个版本的更新链路可能误识别非 Aurora 更新，或在下载失败后打开旧缓存 APK。原有变更记录保留以便审计；1.8.85-aurora.6 的正式 APK 签名未失效。
 
 ### English
 
@@ -14,6 +15,11 @@
   SHA-256 digest all match.
 - Clears the old fixed update cache so a failed network request cannot open a
   stale APK, partial file, or non-Aurora package.
+- Withdraws the GitHub Releases, downloadable assets, and version tags for
+  1.8.85-aurora.5 and 1.8.85-aurora.6 on 2026-07-28. Their update paths could
+  misidentify a non-Aurora update or open a stale cached APK after a failed
+  download. The original changelog records remain for audit; the formal
+  1.8.85-aurora.6 APK signature was not invalid.
 
 ## 1.8.85-aurora.6 - 2026-07-27
 
