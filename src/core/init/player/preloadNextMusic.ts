@@ -3,6 +3,7 @@ import { getNextPlayMusicInfo, resetRandomNextMusicInfo } from '@/core/player/pl
 import { checkUrl } from '@/utils/request'
 import playerState from '@/store/player/state'
 import { isCached } from '@/plugins/player/utils'
+import { getCachedPlayerMusicUrl } from '@/core/player/musicCache'
 
 const preloadMusicInfo = {
   isLoading: false,
@@ -22,7 +23,10 @@ const preloadNextMusicUrl = async (curTime: number) => {
     const info = await getNextPlayMusicInfo()
     if (info) {
       preloadMusicInfo.info = info
-      const allowToggleSource = info.musicInfo.source != 'tx'
+      if (await getCachedPlayerMusicUrl(info.musicInfo).catch(() => null)) return
+      const onlineMusicInfo =
+        'progress' in info.musicInfo ? info.musicInfo.metadata.musicInfo : info.musicInfo
+      const allowToggleSource = onlineMusicInfo.source != 'tx'
       const url = await getMusicUrl({
         musicInfo: info.musicInfo,
         isRefresh: false,

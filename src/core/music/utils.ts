@@ -1,7 +1,8 @@
 import musicSdk, { findMusic } from '@/utils/musicSdk'
 import {
-  // getOtherSource as getOtherSourceFromStore,
-  // saveOtherSource as saveOtherSourceFromStore,
+  getOtherSource as getOtherSourceFromStore,
+  saveOtherSource as saveOtherSourceFromStore,
+  getMusicUrlCache as getStoreMusicUrlCache,
   getMusicUrl as getStoreMusicUrl,
   getPlayerLyric as getStoreLyric,
 } from '@/utils/data'
@@ -14,20 +15,12 @@ import { apis } from '@/utils/musicSdk/api-source'
 
 const getOtherSourcePromises = new Map()
 export const existTimeExp = /\[\d{1,2}:.*\d{1,4}\]/
-const otherSourceCache = new Map<
-  LX.Music.MusicInfo | LX.Download.ListItem,
-  LX.Music.MusicInfoOnline[]
->()
+const otherSourceCache = new Map<string, LX.Music.MusicInfoOnline[]>()
 
 export const getOtherSource = async (
   musicInfo: LX.Music.MusicInfo | LX.Download.ListItem,
   isRefresh = false
 ): Promise<LX.Music.MusicInfoOnline[]> => {
-  // if (!isRefresh) {
-  //   const cachedInfo = await getOtherSourceFromStore(musicInfo.id)
-  //   if (cachedInfo.length) return cachedInfo
-  // }
-  if (otherSourceCache.has(musicInfo)) return otherSourceCache.get(musicInfo)!
   let key: string
   let searchMusicInfo: {
     name: string
@@ -55,6 +48,14 @@ export const getOtherSource = async (
       interval: musicInfo.interval ?? '',
     }
   }
+  if (!isRefresh) {
+    if (otherSourceCache.has(key)) return otherSourceCache.get(key)!
+    const cachedInfo = await getOtherSourceFromStore(key)
+    if (cachedInfo.length) {
+      otherSourceCache.set(key, cachedInfo)
+      return cachedInfo
+    }
+  }
   if (getOtherSourcePromises.has(key)) return getOtherSourcePromises.get(key)
 
   const promise = new Promise<LX.Music.MusicInfoOnline[]>((resolve, reject) => {
@@ -66,7 +67,7 @@ export const getOtherSource = async (
       .then((otherSource) => {
         if (otherSourceCache.size > 10) otherSourceCache.clear()
         const source = otherSource.map(toNewMusicInfo) as LX.Music.MusicInfoOnline[]
-        otherSourceCache.set(musicInfo, source)
+        otherSourceCache.set(key, source)
         resolve(source)
       })
       .catch(reject)
@@ -75,7 +76,7 @@ export const getOtherSource = async (
       })
   })
     .then((otherSource) => {
-      // if (otherSource.length) void saveOtherSourceFromStore(musicInfo.id, otherSource)
+      if (otherSource.length) void saveOtherSourceFromStore(key, otherSource)
       return otherSource
     })
     .finally(() => {
@@ -256,6 +257,7 @@ export interface ResolvedMusicUrl {
   musicInfo: LX.Music.MusicInfoOnline
   quality: LX.Quality
   isFromCache: boolean
+  playbackSource: LX.OnlineSource
 }
 
 export type MusicUrlRequester = (
@@ -278,6 +280,9 @@ export const getMusicUrlCandidateKey = (
   musicInfo: LX.Music.MusicInfoOnline,
   quality: LX.Quality
 ) => `${musicInfo.source}_${musicInfo.id}_${quality}`
+
+export const getCachedPlaybackSource = (url: string, fallback: LX.OnlineSource) =>
+  /^https?:\/\/(?:[^/]+\.)?music\.126\.net\//.test(url) ? 'wy' : fallback
 
 export const getQualityCandidates = (
   musicInfo: LX.Music.MusicInfoOnline,
@@ -385,10 +390,17 @@ const createMusicUrlCandidateResolver = ({
     }
 
     if (!isRefresh) {
-      const cachedUrl = await getStoreMusicUrl(musicInfo, quality)
+      const cachedUrl = await getStoreMusicUrlCache(musicInfo, quality)
       if (cachedUrl) {
         attemptedCandidates.add(candidateKey)
-        return { url: cachedUrl, musicInfo, quality, isFromCache: true }
+        return {
+          url: cachedUrl.url,
+          musicInfo,
+          quality,
+          isFromCache: true,
+          playbackSource:
+            cachedUrl.source ?? getCachedPlaybackSource(cachedUrl.url, musicInfo.source),
+        }
       }
     }
 
@@ -400,7 +412,13 @@ const createMusicUrlCandidateResolver = ({
         throw new Error(`quality mismatch: requested ${quality}, received ${resolvedQuality}`)
       }
       attemptedCandidates.add(candidateKey)
-      return { url, musicInfo, quality: resolvedQuality, isFromCache: false }
+      return {
+        url,
+        musicInfo,
+        quality: resolvedQuality,
+        isFromCache: false,
+        playbackSource: musicInfo.source,
+      }
     } catch (err: any) {
       if (err.message == requestMsg.tooManyRequests) throw err
       attemptedCandidates.add(candidateKey)

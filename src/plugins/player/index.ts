@@ -65,6 +65,7 @@ export {
   updateMetaData,
   onStateChange,
   isEmpty,
+  isCached,
   useBufferProgress,
   initTrackInfo,
   updateOptions,

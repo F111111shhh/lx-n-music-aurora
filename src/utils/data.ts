@@ -352,10 +352,45 @@ export const removeListMusics = async (ids: string[]): Promise<void> => {
   // delaySaveListScrollPosition(global.lx.listScrollPosition)
 }
 
+type CachedMusicUrl = {
+  url: string
+  source?: LX.OnlineSource
+  updatedAt?: number
+}
+
+type CachedOtherSource = {
+  list: LX.Music.MusicInfoOnline[]
+  updatedAt: number
+}
+
+const otherSourceCacheMaxAge = 7 * 24 * 60 * 60 * 1000
+const maxOtherSourceCacheCount = 100
+
+export const getMusicUrlCache = async (
+  musicInfo: LX.Music.MusicInfo,
+  type: LX.Quality
+): Promise<CachedMusicUrl | null> => {
+  const data = await getData<string | CachedMusicUrl>(
+    `${storageDataPrefix.musicUrl}${musicInfo.id}_${type}`
+  )
+  if (typeof data == 'string') return data ? { url: data } : null
+  if (!data?.url) return null
+  return data
+}
+
 export const getMusicUrl = async (musicInfo: LX.Music.MusicInfo, type: LX.Quality) =>
-  getData<string>(`${storageDataPrefix.musicUrl}${musicInfo.id}_${type}`).then((url) => url ?? '')
-export const saveMusicUrl = async (musicInfo: LX.Music.MusicInfo, type: LX.Quality, url: string) =>
-  saveData(`${storageDataPrefix.musicUrl}${musicInfo.id}_${type}`, url)
+  getMusicUrlCache(musicInfo, type).then((cache) => cache?.url ?? '')
+export const saveMusicUrl = async (
+  musicInfo: LX.Music.MusicInfo,
+  type: LX.Quality,
+  url: string,
+  source?: LX.OnlineSource
+) =>
+  saveData(`${storageDataPrefix.musicUrl}${musicInfo.id}_${type}`, {
+    url,
+    source,
+    updatedAt: Date.now(),
+  } satisfies CachedMusicUrl)
 export const clearMusicUrl = async (keys?: string[]) => {
   if (!keys) keys = (await getAllKeys()).filter((key) => key.startsWith(storageDataPrefix.musicUrl))
   await removeDataMultiple(keys)
@@ -406,12 +441,34 @@ export const getPlayerLyric = async (
   })
 }
 
-export const getOtherSource = async (id: string) =>
-  getData<LX.Music.MusicInfoOnline[]>(`${storageDataPrefix.musicOtherSource}${id}`).then(
-    (url) => url ?? []
-  )
-export const saveOtherSource = async (id: string, sourceInfo: LX.Music.MusicInfoOnline[]) =>
-  saveData(`${storageDataPrefix.musicOtherSource}${id}`, sourceInfo)
+export const getOtherSource = async (id: string) => {
+  const key = `${storageDataPrefix.musicOtherSource}${id}`
+  const data = await getData<LX.Music.MusicInfoOnline[] | CachedOtherSource>(key)
+  if (Array.isArray(data)) return data
+  if (!data?.list?.length) return []
+  if (Date.now() - data.updatedAt <= otherSourceCacheMaxAge) return data.list
+  await removeData(key)
+  return []
+}
+export const saveOtherSource = async (id: string, sourceInfo: LX.Music.MusicInfoOnline[]) => {
+  const keys = (await getAllKeys()).filter((key) => key.startsWith(storageDataPrefix.musicOtherSource))
+  if (keys.length >= maxOtherSourceCacheCount) {
+    const entries = await Promise.all(
+      keys.map(async (key) => {
+        const data = await getData<CachedOtherSource>(key)
+        return { key, updatedAt: data && !Array.isArray(data) ? data.updatedAt : 0 }
+      })
+    )
+    entries.sort((a, b) => a.updatedAt - b.updatedAt)
+    await removeDataMultiple(
+      entries.slice(0, keys.length - maxOtherSourceCacheCount + 1).map(({ key }) => key)
+    )
+  }
+  return saveData(`${storageDataPrefix.musicOtherSource}${id}`, {
+    list: sourceInfo,
+    updatedAt: Date.now(),
+  } satisfies CachedOtherSource)
+}
 export const clearOtherSource = async (keys?: string[]) => {
   if (!keys)
     keys = (await getAllKeys()).filter((key) => key.startsWith(storageDataPrefix.musicOtherSource))
@@ -672,5 +729,3 @@ export const savePlaylistType = async (type: 'local' | 'online') => {
   playlistType = type
   await saveData(playlistTypeKey, type)
 }
-
-

@@ -211,7 +211,7 @@ const handlePlayMusic = async (
     await TrackPlayer.pause()
     if (!isTempTrack(track.id as string)) {
       await TrackPlayer.seekTo(time)
-      await TrackPlayer.play()
+      if (!pauseAfterRestore) await TrackPlayer.play()
     }
   }
 

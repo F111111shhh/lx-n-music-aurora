@@ -4,17 +4,19 @@
 
 ### 中文
 
-- 改进在线播放的地址和音频缓存复用：从列表再次播放、恢复上次暂停的歌曲、切换下一首及同源音质切换时，会优先使用此前成功的地址和播放器已缓存的音频。
-- 修复歌曲因回退到其他音源后，原歌曲没有记住成功播放地址的问题；本地歌曲借用在线音源播放时也会复用该地址。
-- 地址确实失效或播放出错时仍会重新获取，避免因复用旧地址而无法继续播放。
-- 优化下一首预处理：已命中播放器缓存时不再进行额外的网络可用性检查。
+- 修复关闭“启动后自动播放音乐”后仍会自己开始播放的问题。关闭时只恢复上次的歌曲和进度，点播放后才会加载歌曲；开启时保持自动恢复播放。
+- 改进歌曲缓存的使用：从列表再次播放、切换下一首时，会优先使用已缓存的可播放版本。即使设置了较高音质但已经缓存了较低音质，也会先尽快播放，减少等待。
+- 下一首准备播放时会优先检查已有缓存，避免重复获取链接和不必要的网络检查；不会额外下载整首下一首歌曲。
+- 成功换源后的候选歌曲会暂时保存，之后再次遇到同一首歌时更容易直接恢复播放。设置里的“换源歌曲信息数量”和清理按钮现在会反映实际保存的内容。
+- 已保存的旧链接没有对应的歌曲缓存时，会先检查是否仍可用；失效后会及时重新获取，避免长时间卡在加载中。
 
 ### English
 
-- Improves reuse of resolved playback URLs and cached audio when replaying from a list, restoring the last paused track, advancing to the next track, or changing quality within the same source.
-- Fixes original tracks not retaining a successful playback URL after a fallback source was used; local tracks borrowing an online source now retain it too.
-- Keeps URL refresh on real playback failures so an expired address does not block playback.
-- Avoids an extra network availability check while preparing the next track when the player cache already contains its audio.
+- Fixes music starting by itself even when "Auto-play music on startup" is disabled. The app now restores the previous song and position only; it loads the song after Play is pressed. Auto-play still restores playback when enabled.
+- Gives cached playable versions priority when replaying a song from a list or moving to the next track. A lower-quality cached version can start promptly even when a higher quality is preferred.
+- Checks existing cache first while preparing the next track, avoiding repeated link requests and unnecessary network checks without downloading the entire next song.
+- Temporarily saves successful source-change candidates so the same song can be recovered more easily later. The source-change cache count and clear button now reflect stored data.
+- Checks saved links without matching audio cache before use and refreshes invalid links promptly instead of remaining on a loading state.
 
 ## 1.8.85-aurora.8 - 2026-07-28
 

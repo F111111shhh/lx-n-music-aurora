@@ -7,6 +7,7 @@ import {
   setResource,
   setStop,
   getPosition,
+  isCached,
 } from '@/plugins/player'
 import { setStatusText } from '@/core/player/playStatus'
 import playerState from '@/store/player/state'
@@ -29,6 +30,8 @@ import { addListMusics, removeListMusics } from '@/core/list'
 import { addDislikeInfo } from '@/core/dislikeList'
 import type { ResolvedMusicUrl } from '@/core/music/utils'
 import { setNowPlayTime } from '@/core/player/progress'
+import { checkUrl } from '@/utils/request'
+import { getCachedPlayerMusicUrl } from './musicCache'
 
 // import { checkMusicFileAvailable } from '@renderer/utils/music'
 
@@ -119,6 +122,7 @@ const getMusicPlayUrl = async (
   context: PlayUrlContext,
   requestId: number
 ): Promise<{ url: string; resolved?: ResolvedMusicUrl } | null> => {
+  let shouldRefresh = isRefresh
   while (isCurrentMusicInfo(musicInfo) && requestId == musicUrlRequestId) {
     setStatusText(global.i18n.t('player__getting_url'))
     let resolved: ResolvedMusicUrl | undefined
@@ -126,7 +130,7 @@ const getMusicPlayUrl = async (
       const url = await getMusicUrl({
         musicInfo,
         quality: context.requestedQuality,
-        isRefresh,
+        isRefresh: shouldRefresh,
         allowToggleSource: true,
         allowQualityFallback: true,
         attemptedCandidates: context.attemptedCandidates,
@@ -139,6 +143,15 @@ const getMusicPlayUrl = async (
         },
       })
       if (!isCurrentMusicInfo(musicInfo) || requestId != musicUrlRequestId) return null
+      if (resolved?.isFromCache && !(await isCached(url))) {
+        try {
+          await checkUrl(url)
+        } catch {
+          context.attemptedCandidates.clear()
+          shouldRefresh = true
+          continue
+        }
+      }
       return { url, resolved }
     } catch (err: any) {
       if (
@@ -168,21 +181,42 @@ export const setMusicUrl = (
 
   const context = playUrlContext
   const requestId = ++musicUrlRequestId
-  global.lx.gettingUrlId = musicKey
-  return getMusicPlayUrl(musicInfo, Boolean(isRefresh), context, requestId)
+  return (async () => {
+    if (!isRefresh) {
+      const cached = await getCachedPlayerMusicUrl(
+        musicInfo,
+        context.requestedQuality,
+        !requestedQuality
+      ).catch(() => null)
+      if (cached && isCurrentMusicInfo(musicInfo) && requestId == musicUrlRequestId) {
+        global.lx.gettingUrlId = ''
+        setMusicInfo({ quality: cached.quality, source: cached.source })
+        setResource(
+          musicInfo,
+          cached.url,
+          playerState.progress.nowPlayTime,
+          cached.source,
+          pauseAfterRestore
+        )
+        return true
+      }
+    }
+
+    global.lx.gettingUrlId = musicKey
+    return getMusicPlayUrl(musicInfo, Boolean(isRefresh), context, requestId)
     .then((result) => {
       if (!result) return false
       if (result.resolved) {
         setMusicInfo({
           quality: result.resolved.quality,
-          source: result.resolved.musicInfo.source,
+          source: result.resolved.playbackSource,
         })
       }
       setResource(
         musicInfo,
         result.url,
         playerState.progress.nowPlayTime,
-        result.resolved?.musicInfo.source,
+        result.resolved?.playbackSource,
         pauseAfterRestore
       )
       return true
@@ -198,6 +232,7 @@ export const setMusicUrl = (
         global.lx.gettingUrlId = ''
       }
     })
+  })()
 }
 
 export const setCurrentPlayQuality = async (quality: LX.Quality): Promise<boolean> => {
@@ -234,9 +269,12 @@ const handleRestorePlay = async (restorePlayInfo: LX.Player.SavedPlayInfo) => {
 
   const playMusicInfo = playerState.playMusicInfo
 
-  const pauseAfterRestore = !settingState.setting['player.startupAutoPlay']
   global.lx.restorePlayInfo = null
-  void setMusicUrl(musicInfo, false, undefined, pauseAfterRestore)
+  if (settingState.setting['player.startupAutoPlay']) {
+    void setMusicUrl(musicInfo)
+  } else {
+    void setPause()
+  }
 
   void getPicPath({ musicInfo, listId: playMusicInfo.listId }).then((url: string) => {
     if (

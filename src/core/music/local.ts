@@ -134,10 +134,10 @@ export const getMusicUrl = async ({
       musicInfos: [...otherSource],
       onToggleSource,
       isRefresh,
-    }).then(({ url, quality: targetQuality, musicInfo: targetMusicInfo, isFromCache }) => {
+    }).then(({ url, quality: targetQuality, musicInfo: targetMusicInfo, isFromCache, playbackSource }) => {
       // saveLyric(musicInfo, data.lyricInfo)
-      if (!isFromCache) void saveMusicUrl(targetMusicInfo, targetQuality, url)
-      void saveMusicUrl(musicInfo, '128k', url)
+      if (!isFromCache) void saveMusicUrl(targetMusicInfo, targetQuality, url, playbackSource)
+      void saveMusicUrl(musicInfo, '128k', url, playbackSource)
       return url
     })
   })
