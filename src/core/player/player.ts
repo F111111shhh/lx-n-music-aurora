@@ -5,7 +5,8 @@ import {
   setPause,
   setPlay,
   setResource,
-  setStop, initTrackInfo, getPosition,
+  setStop,
+  getPosition,
 } from '@/plugins/player'
 import { setStatusText } from '@/core/player/playStatus'
 import playerState from '@/store/player/state'
@@ -155,11 +156,15 @@ const getMusicPlayUrl = async (
 
 export const setMusicUrl = (
   musicInfo: LX.Music.MusicInfo | LX.Download.ListItem,
-  isRefresh?: boolean
+  isRefresh?: boolean,
+  requestedQuality?: LX.Quality,
+  pauseAfterRestore = false
 ): Promise<boolean> => {
   if (cancelDelayRetry) cancelDelayRetry()
   const musicKey = createGettingUrlId(musicInfo)
-  if (!isRefresh || playUrlContext.musicKey != musicKey) resetPlayUrlContext(musicInfo)
+  if (!isRefresh || playUrlContext.musicKey != musicKey || requestedQuality) {
+    resetPlayUrlContext(musicInfo, requestedQuality)
+  }
 
   const context = playUrlContext
   const requestId = ++musicUrlRequestId
@@ -177,7 +182,8 @@ export const setMusicUrl = (
         musicInfo,
         result.url,
         playerState.progress.nowPlayTime,
-        result.resolved?.musicInfo.source
+        result.resolved?.musicInfo.source,
+        pauseAfterRestore
       )
       return true
     })
@@ -207,8 +213,7 @@ export const setCurrentPlayQuality = async (quality: LX.Quality): Promise<boolea
 
   if (playerState.playMusicInfo.musicInfo !== musicInfo) return false
   if (cancelDelayRetry) cancelDelayRetry()
-  resetPlayUrlContext(musicInfo, quality)
-  return setMusicUrl(musicInfo, true)
+  return setMusicUrl(musicInfo, false, quality)
 }
 
 // 恢复上次播放的状态
@@ -216,16 +221,22 @@ const handleRestorePlay = async (restorePlayInfo: LX.Player.SavedPlayInfo) => {
   const musicInfo = playerState.playMusicInfo.musicInfo
   if (!musicInfo) return
 
+  const restoreTime = settingState.setting['player.isSavePlayTime'] ? restorePlayInfo.time : 0
+  setNowPlayTime(restoreTime)
+
   setTimeout(() => {
+    if (playerState.playMusicInfo.musicInfo !== musicInfo) return
     global.app_event.setProgress(
-      settingState.setting['player.isSavePlayTime'] ? restorePlayInfo.time : 0,
+      restoreTime,
       restorePlayInfo.maxTime
     )
   })
 
   const playMusicInfo = playerState.playMusicInfo
 
-  void initTrackInfo(musicInfo, playerState.musicInfo)
+  const pauseAfterRestore = !settingState.setting['player.startupAutoPlay']
+  global.lx.restorePlayInfo = null
+  void setMusicUrl(musicInfo, false, undefined, pauseAfterRestore)
 
   void getPicPath({ musicInfo, listId: playMusicInfo.listId }).then((url: string) => {
     if (
@@ -315,7 +326,6 @@ export const handlePlay = async () => {
 
   if (global.lx.restorePlayInfo) {
     void handleRestorePlay(global.lx.restorePlayInfo)
-    global.lx.restorePlayInfo = null
     return
   }
 

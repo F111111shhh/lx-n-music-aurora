@@ -18,34 +18,37 @@ const preloadNextMusicUrl = async (curTime: number) => {
   if (preloadMusicInfo.isLoading || curTime - preloadMusicInfo.preProgress < 3) return
   preloadMusicInfo.isLoading = true
   console.log('preload next music url')
-  const info = await getNextPlayMusicInfo()
-  if (info) {
-    preloadMusicInfo.info = info
-    const allowToggleSource = info.musicInfo.source != 'tx'
-    const url = await getMusicUrl({
-      musicInfo: info.musicInfo,
-      isRefresh: false,
-      allowToggleSource,
-    }).catch(() => '')
-    if (url) {
-      console.log('preload url', url)
-      const [cached, available] = await Promise.all([
-        isCached(url),
-        checkUrl(url)
-          .then(() => true)
-          .catch(() => false),
-      ])
-      if (!cached && !available) {
-        const url = await getMusicUrl({
-          musicInfo: info.musicInfo,
-          isRefresh: true,
-          allowToggleSource,
-        }).catch(() => '')
-        console.log('preload url refresh', url)
+  try {
+    const info = await getNextPlayMusicInfo()
+    if (info) {
+      preloadMusicInfo.info = info
+      const allowToggleSource = info.musicInfo.source != 'tx'
+      const url = await getMusicUrl({
+        musicInfo: info.musicInfo,
+        isRefresh: false,
+        allowToggleSource,
+      }).catch(() => '')
+      if (url) {
+        console.log('preload url', url)
+        const cached = await isCached(url)
+        if (!cached) {
+          const available = await checkUrl(url)
+            .then(() => true)
+            .catch(() => false)
+          if (!available) {
+            const url = await getMusicUrl({
+              musicInfo: info.musicInfo,
+              isRefresh: true,
+              allowToggleSource,
+            }).catch(() => '')
+            console.log('preload url refresh', url)
+          }
+        }
       }
     }
+  } finally {
+    preloadMusicInfo.isLoading = false
   }
-  preloadMusicInfo.isLoading = false
 }
 
 export default () => {

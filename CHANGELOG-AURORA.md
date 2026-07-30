@@ -1,5 +1,21 @@
 # LX-N Music Aurora Changelog
 
+## 1.8.85-aurora.9 - 2026-07-30
+
+### 中文
+
+- 改进在线播放的地址和音频缓存复用：从列表再次播放、恢复上次暂停的歌曲、切换下一首及同源音质切换时，会优先使用此前成功的地址和播放器已缓存的音频。
+- 修复歌曲因回退到其他音源后，原歌曲没有记住成功播放地址的问题；本地歌曲借用在线音源播放时也会复用该地址。
+- 地址确实失效或播放出错时仍会重新获取，避免因复用旧地址而无法继续播放。
+- 优化下一首预处理：已命中播放器缓存时不再进行额外的网络可用性检查。
+
+### English
+
+- Improves reuse of resolved playback URLs and cached audio when replaying from a list, restoring the last paused track, advancing to the next track, or changing quality within the same source.
+- Fixes original tracks not retaining a successful playback URL after a fallback source was used; local tracks borrowing an online source now retain it too.
+- Keeps URL refresh on real playback failures so an expired address does not block playback.
+- Avoids an extra network availability check while preparing the next track when the player cache already contains its audio.
+
 ## 1.8.85-aurora.8 - 2026-07-28
 
 ### 中文

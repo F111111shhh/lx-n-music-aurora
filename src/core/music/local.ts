@@ -137,8 +137,7 @@ export const getMusicUrl = async ({
     }).then(({ url, quality: targetQuality, musicInfo: targetMusicInfo, isFromCache }) => {
       // saveLyric(musicInfo, data.lyricInfo)
       if (!isFromCache) void saveMusicUrl(targetMusicInfo, targetQuality, url)
-
-      // TODO: save url ?
+      void saveMusicUrl(musicInfo, '128k', url)
       return url
     })
   })

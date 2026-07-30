@@ -115,7 +115,8 @@ const playMusic = ((
     musicInfo: LX.Player.PlayMusic,
     url: string,
     time: number,
-    source?: LX.OnlineSource
+    source?: LX.OnlineSource,
+    pauseAfterRestore?: boolean
   ) => void,
   delay = 800
 ) => {
@@ -126,16 +127,19 @@ const playMusic = ((
   let _url = ''
   let _time = 0
   let _source: LX.OnlineSource | undefined
+  let _pauseAfterRestore = false
   return (
     musicInfo: LX.Player.PlayMusic,
     url: string,
     time: number,
-    source?: LX.OnlineSource
+    source?: LX.OnlineSource,
+    pauseAfterRestore = false
   ) => {
     _musicInfo = musicInfo
     _url = url
     _time = time
     _source = source
+    _pauseAfterRestore = pauseAfterRestore
     if (timer) {
       BackgroundTimer.clearTimeout(timer)
       timer = null
@@ -151,33 +155,36 @@ const playMusic = ((
         let url = _url
         let time = _time
         let source = _source
+        let pauseAfterRestore = _pauseAfterRestore
         _musicInfo = null
         _url = ''
         _time = 0
         _source = undefined
+        _pauseAfterRestore = false
         isDelayRun = false
-        fn(musicInfo!, url, time, source)
+        fn(musicInfo!, url, time, source, pauseAfterRestore)
       }, delay)
     } else {
       isDelayRun = true
-      fn(musicInfo, url, time, source)
+      fn(musicInfo, url, time, source, pauseAfterRestore)
       delayTimer = BackgroundTimer.setTimeout(() => {
         delayTimer = null
         isDelayRun = false
       }, 500)
     }
   }
-})((musicInfo, url, time) => {
-  handlePlayMusic(musicInfo, url, time)
+})((musicInfo, url, time, source, pauseAfterRestore) => {
+  handlePlayMusic(musicInfo, url, time, source, pauseAfterRestore)
 })
 
 export const setResource = (
   musicInfo: LX.Player.PlayMusic,
   url: string,
   duration?: number,
-  source?: LX.OnlineSource
+  source?: LX.OnlineSource,
+  pauseAfterRestore = false
 ) => {
-  playMusic(musicInfo, url, duration ?? 0, source)
+  playMusic(musicInfo, url, duration ?? 0, source, pauseAfterRestore)
 }
 
 export const setPlay = async () => TrackPlayer.play()

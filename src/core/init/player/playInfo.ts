@@ -1,10 +1,10 @@
 import { getPlayInfo } from '@/utils/data'
 import { getListMusics } from '@/core/list'
-import { playList, play } from '@/core/player/player'
+import { playList } from '@/core/player/player'
 import {LIST_IDS} from "@/config/constant.ts"
 import listAction from '@/store/list/action'
 
-export default async (setting: LX.AppSetting) => {
+export default async (_setting: LX.AppSetting) => {
   const info = await getPlayInfo()
   global.lx.restorePlayInfo = null
   if (!info?.listId || info.index < 0) return
@@ -18,8 +18,6 @@ export default async (setting: LX.AppSetting) => {
   global.lx.restorePlayInfo = info
 
   await playList(info.listId, info.index)
-
-  if (setting['player.startupAutoPlay']) setTimeout(play)
 
   // if (!info.list || !info.list[info.index]) {
   //   const info2 = { ...info }

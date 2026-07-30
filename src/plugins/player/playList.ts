@@ -3,9 +3,6 @@ import { updateWidget } from '@/utils/nativeModules/musicWidget'
 import BackgroundTimer from 'react-native-background-timer'
 import { defaultUrl } from '@/config'
 // import { action as playerAction } from '@/store/modules/player'
-import settingState from '@/store/setting/state'
-
-
 const list: LX.Player.Track[] = []
 
 const defaultUserAgent = 'Mozilla/5.0 (Linux; Android 10; Pixel 3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Mobile Safari/537.36'
@@ -189,7 +186,8 @@ const handlePlayMusic = async (
   musicInfo: LX.Player.PlayMusic,
   url: string,
   time: number,
-  source?: LX.OnlineSource
+  source?: LX.OnlineSource,
+  pauseAfterRestore = false
 ) => {
   // console.log(tracks, time)
   const tracks = buildTracks(musicInfo, url, undefined, source)
@@ -203,13 +201,8 @@ const handlePlayMusic = async (
   if (currentTrackIndex == null) {
     if (!isTempTrack(track.id as string)) {
       if (time) await TrackPlayer.seekTo(time)
-      if (global.lx.restorePlayInfo) {
+      if (pauseAfterRestore) {
         await TrackPlayer.pause()
-        // let startupAutoPlay = settingState.setting['player.startupAutoPlay']
-        global.lx.restorePlayInfo = null
-
-        // TODO startupAutoPlay
-        // if (startupAutoPlay) store.dispatch(playerAction.playMusic())
       } else {
         await TrackPlayer.play()
       }
@@ -232,12 +225,13 @@ export const playMusic = (
   musicInfo: LX.Player.PlayMusic,
   url: string,
   time: number,
-  source?: LX.OnlineSource
+  source?: LX.OnlineSource,
+  pauseAfterRestore = false
 ) => {
   const id = actionId = Math.random()
   void playPromise.finally(() => {
     if (id != actionId) return
-    playPromise = handlePlayMusic(musicInfo, url, time, source)
+    playPromise = handlePlayMusic(musicInfo, url, time, source, pauseAfterRestore)
   })
 }
 

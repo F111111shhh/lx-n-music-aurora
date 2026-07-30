@@ -159,6 +159,12 @@ export const getMusicUrl = async ({
     requestMusicUrl: createMusicUrlRequester(forceWyCookie),
   })
   if (!result.isFromCache) void saveMusicUrl(result.musicInfo, result.quality, result.url)
+  if (
+    result.musicInfo.id != musicInfo.id ||
+    result.musicInfo.source != musicInfo.source
+  ) {
+    void saveMusicUrl(musicInfo, result.quality, result.url)
+  }
   onResolved(result)
   return result.url
 }
